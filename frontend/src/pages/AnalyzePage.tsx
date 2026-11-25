@@ -66,9 +66,12 @@ export function AnalyzePage() {
               title={error.code === 'service_unavailable' ? 'Analiz servisine ulaşılamıyor' : 'Analiz başlatılamadı'}
               actions={
                 <>
-                  <Button icon={RotateCcw} variant="secondary" onClick={() => lastUrl && start(lastUrl)} disabled={!lastUrl}>
-                    Yeniden dene
-                  </Button>
+                  {/* Sunucu adresi reddettiyse aynı isteği tekrarlamak anlamsızdır; adres düzeltilmelidir. */}
+                  {error.code !== 'bad_request' && (
+                    <Button icon={RotateCcw} variant="secondary" onClick={() => lastUrl && start(lastUrl)} disabled={!lastUrl}>
+                      Yeniden dene
+                    </Button>
+                  )}
                   {isDemoMode && (
                     <Button
                       variant="ghost"
@@ -87,6 +90,7 @@ export function AnalyzePage() {
               }
             >
               <p>{error.message}</p>
+              {error.code === 'bad_request' && <p className="mt-1">Adresi düzeltip yeniden gönderin.</p>}
             </StatePanel>
           </div>
         )}

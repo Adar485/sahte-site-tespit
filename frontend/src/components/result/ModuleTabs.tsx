@@ -1,4 +1,7 @@
-import { FileCode2, Image, Link2, Type, type LucideIcon } from 'lucide-react';
+import { FileCode2, FileWarning, Image, Link2, Type, type LucideIcon } from 'lucide-react';
+import { ErrorBoundary } from '../ErrorBoundary';
+import { StatePanel } from '../StatePanel';
+import { FindingList } from './FindingList';
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { MODULE_LABELS, MODULE_ORDER, MODULE_STATUS_LABELS } from '../../lib/labels';
 import type { AnalysisResult, ModuleKey } from '../../types/analysis';
@@ -96,10 +99,23 @@ export function ModuleTabs({ result, initial = 'url' }: { result: AnalysisResult
           className="p-5 focus-visible:outline-offset-[-3px] sm:p-7"
         >
           <p className="mb-6 text-[16px] font-semibold leading-6 text-ink">{module.summary}</p>
-          {module.key === 'url' && <UrlDetails module={module} />}
-          {module.key === 'visual' && <VisualDetails module={module} pageUrl={pageUrl} />}
-          {module.key === 'text' && <TextDetails module={module} />}
-          {module.key === 'html' && <HtmlDetails module={module} />}
+          {/* Modül verisi beklenen biçimde değilse yalnızca bu bölüm yedek içerikle gösterilir. */}
+          <ErrorBoundary
+            resetKey={`${result.id}:${active}`}
+            fallback={
+              <div className="space-y-6">
+                <StatePanel headingLevel="h3" icon={FileWarning} tone="warning" title="Bu bölümün ayrıntıları görüntülenemedi">
+                  <p>Analiz servisinden gelen ayrıntılı veriler beklenen biçimde değil. Bulgular aşağıda listelenmiştir.</p>
+                </StatePanel>
+                <FindingList findings={module.findings} />
+              </div>
+            }
+          >
+            {module.key === 'url' && <UrlDetails module={module} />}
+            {module.key === 'visual' && <VisualDetails module={module} pageUrl={pageUrl} />}
+            {module.key === 'text' && <TextDetails module={module} />}
+            {module.key === 'html' && <HtmlDetails module={module} />}
+          </ErrorBoundary>
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { AnalysisJob, AnalyzeRequest, AnalyzeResponse, HistoryPage, HistoryQuery } from '../types/analysis';
+import { normalizeJob } from './normalize';
 import { ServiceError, type AnalysisService, type RequestOptions } from './types';
 
 /** VITE_API_BASE_URL verilmezse yerel FastAPI adresi kullanılır. */
@@ -72,8 +73,9 @@ export const apiAnalysisService: AnalysisService = {
     return request<AnalyzeResponse>('/api/analyze', { method: 'POST', body: JSON.stringify(body) }, options);
   },
 
-  getResult(id: string, options?: RequestOptions) {
-    return request<AnalysisJob>(`/api/result/${encodeURIComponent(id)}`, { method: 'GET' }, options);
+  async getResult(id: string, options?: RequestOptions) {
+    const job = await request<AnalysisJob>(`/api/result/${encodeURIComponent(id)}`, { method: 'GET' }, options);
+    return normalizeJob(job);
   },
 
   listHistory(query: HistoryQuery, options?: RequestOptions) {

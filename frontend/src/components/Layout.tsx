@@ -1,7 +1,39 @@
-import { History, Info, ScanSearch } from 'lucide-react';
+import { History, Info, ScanSearch, TriangleAlert } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { isDemoMode } from '../services';
+import { ErrorBoundary } from './ErrorBoundary';
+import { StatePanel } from './StatePanel';
+import { ButtonLink, Panel } from './ui';
+
+/** Beklenmeyen bir hata tüm sayfayı boş bırakmak yerine bu mesajı gösterir. */
+function PageCrashFallback() {
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+      <Panel className="p-6 sm:p-8">
+        <StatePanel
+          alert
+          headingLevel="h1"
+          tone="warning"
+          icon={TriangleAlert}
+          title="Bu sayfa görüntülenemedi"
+          actions={
+            <>
+              <ButtonLink to="/" icon={ScanSearch}>
+                Analiz sayfasına git
+              </ButtonLink>
+              <ButtonLink to="/gecmis" variant="secondary" icon={History}>
+                Geçmişi aç
+              </ButtonLink>
+            </>
+          }
+        >
+          <p>Beklenmeyen bir sorun oluştu. Başka bir sayfaya geçebilir ya da sayfayı yenileyebilirsiniz.</p>
+        </StatePanel>
+      </Panel>
+    </div>
+  );
+}
 
 function LogoMark() {
   return (
@@ -96,7 +128,9 @@ export function Layout() {
       </header>
 
       <main id="icerik" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
-        <Outlet />
+        <ErrorBoundary resetKey={location.pathname} fallback={<PageCrashFallback />}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       <footer className="border-t border-line">
