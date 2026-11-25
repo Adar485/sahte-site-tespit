@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1366 768" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="1366" height="768" fill="#F6F7F9"/>
+<rect x="483" y="90" width="400" height="600" rx="12" fill="#FFFFFF" stroke="#DADDE3"/>
+<rect x="623" y="130" width="120" height="40" rx="6" fill="#E3E6EB"/>
+<text x="683" y="156" font-size="14" fill="#7B8290" text-anchor="middle">LOGO</text>
+<text x="683" y="220" font-size="26" font-weight="700" fill="#1A1D23" text-anchor="middle">Oturum aç</text>
+<rect x="523" y="240" width="320" height="50" rx="6" fill="#FDE8E6"/>
+<text x="683" y="270" font-size="14" fill="#9A2B20" text-anchor="middle">Güvenliğiniz için oturumunuz askıya alındı.</text>
+<text x="523" y="325" font-size="15" fill="#4A505C">E-posta adresi</text>
+<rect x="523" y="335" width="320" height="44" rx="6" fill="#FFFFFF" stroke="#C7CBD3"/>
+<text x="523" y="410" font-size="15" fill="#4A505C">Parola</text>
+<rect x="523" y="420" width="320" height="44" rx="6" fill="#FFFFFF" stroke="#C7CBD3"/>
+<text x="539" y="448" font-size="18" fill="#9AA0AA">••••••••</text>
+<text x="523" y="495" font-size="15" fill="#4A505C">Telefonunuza gelen doğrulama kodu</text>
+<rect x="523" y="505" width="320" height="44" rx="6" fill="#FFFFFF" stroke="#C7CBD3"/>
+<rect x="523" y="580" width="320" height="50" rx="6" fill="#2563EB"/>
+<text x="683" y="611" font-size="17" font-weight="600" fill="#FFFFFF" text-anchor="middle">Oturum aç</text>
+<text x="683" y="664" font-size="14" fill="#2563EB" text-anchor="middle">Parolamı unuttum</text>
+</svg>

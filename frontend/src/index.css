@@ -1,0 +1,83 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/manrope';
+
+@theme {
+  --font-sans: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  --color-paper: #faf7f2;
+  --color-paper-deep: #f2ece2;
+  --color-card: #fffdf9;
+  --color-line: #e5ded2;
+  --color-line-strong: #cbc1b0;
+
+  --color-ink: #0f1e3d;
+  --color-ink-soft: #33415e;
+  --color-ink-muted: #5a6680;
+
+  --color-teal: #0b7d72;
+  --color-teal-strong: #08625a;
+  --color-teal-bright: #19b3a2;
+  --color-teal-soft: #dcf1ed;
+
+  --color-blue: #2f55f0;
+  --color-blue-strong: #1f3fc4;
+  --color-blue-soft: #e5ebfe;
+
+  --color-amber: #93500a;
+  --color-amber-bright: #f0a21a;
+  --color-amber-soft: #fcefd6;
+
+  --color-coral: #bf372a;
+  --color-coral-bright: #ee6352;
+  --color-coral-soft: #fce5e0;
+
+  --color-emerald: #0c7046;
+  --color-emerald-bright: #23a26a;
+  --color-emerald-soft: #dff3e8;
+
+  --animate-progress: progress-slide 1.4s ease-in-out infinite;
+
+  @keyframes progress-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-teal-soft);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  dialog::backdrop {
+    background: rgb(15 30 61 / 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
