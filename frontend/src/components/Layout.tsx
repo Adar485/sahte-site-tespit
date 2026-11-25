@@ -25,8 +25,8 @@ function DemoNotice() {
       <p className="mx-auto flex max-w-6xl items-start gap-2 px-4 py-2 text-[13px] leading-5 sm:items-center sm:px-6">
         <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-blue sm:mt-0" />
         <span>
-          <strong className="font-bold">Demo sürümü:</strong> Gerçek web sitesi analizi henüz çalışmıyor. Gösterilen sonuçlar
-          örnek verilerden üretilir.
+          <strong className="font-bold">Demo modu:</strong> Arka uca bağlanılmıyor. Gösterilen sonuçlar ve geçmiş örnek
+          verilerden üretilir ve yalnızca bu tarayıcıda saklanır.
         </span>
       </p>
     </div>

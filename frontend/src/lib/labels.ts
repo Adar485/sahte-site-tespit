@@ -1,4 +1,5 @@
 import type {
+  AnalysisMode,
   AnalysisStage,
   FindingSeverity,
   KeyPhrase,
@@ -33,6 +34,8 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
 export const MODULE_ORDER: ModuleKey[] = ['url', 'visual', 'text', 'html'];
 
 export const MODULE_STATUS_LABELS: Record<ModuleStatus, string> = {
+  pending: 'Sırada',
+  running: 'Sürüyor',
   completed: 'Tamamlandı',
   unavailable: 'Veri yok',
   skipped: 'Çalıştırılmadı',
@@ -76,4 +79,16 @@ export const FILTER_LABELS: Record<ResultFilter, string> = {
   suspicious: 'Şüpheli',
   high: 'Yüksek risk',
   failed: 'Tamamlanamadı',
+};
+
+export const ANALYSIS_MODE_LABELS: Record<AnalysisMode, string> = {
+  full: 'Tam analiz',
+  url_only: 'Yalnızca URL',
+};
+
+/** Arka uç öneri metni göndermediğinde risk düzeyine göre gösterilen genel öneri. */
+export const DEFAULT_RECOMMENDATIONS: Record<RiskLevel, string> = {
+  low: 'Düşük risk, sitenin güvenli olduğu anlamına gelmez. Kişisel bilgilerinizi yalnızca adresini kendiniz yazdığınız ya da doğruladığınız sitelerle paylaşın.',
+  suspicious: 'Bu sayfaya bilgi girmeden önce adresi dikkatle kontrol edin. Emin değilseniz kurumun adresini tarayıcıya kendiniz yazın.',
+  high: 'Bu sayfaya parola, kart bilgisi ya da doğrulama kodu girmeyin. Bilgi girdiyseniz parolanızı hemen değiştirin.',
 };

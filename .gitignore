@@ -1,0 +1,11 @@
+# Local configuration and secrets (keep the .env.example templates tracked)
+.env
+.env.*
+!.env.example
+README.md
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

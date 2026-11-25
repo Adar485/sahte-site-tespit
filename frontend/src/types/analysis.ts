@@ -1,10 +1,12 @@
 /**
  * Analiz alan modeli.
  *
- * Bu tipler, ileride FastAPI arka ucunun döndüreceği JSON yapısıyla
- * birebir eşleşecek şekilde tasarlanmıştır:
- *   POST /api/analyze      -> AnalyzeResponse
- *   GET  /api/result/{id}  -> AnalysisJob
+ * FastAPI arka ucunun döndürdüğü JSON yapısıyla birebir eşleşir
+ * (backend/app/schemas/analysis.py):
+ *   POST   /api/analyze         -> AnalyzeResponse
+ *   GET    /api/result/{id}     -> AnalysisJob
+ *   GET    /api/history         -> HistoryPage
+ *   DELETE /api/analyses/{id}   -> 204
  */
 
 /** Genel risk düzeyi. Benzerlik puanlarından bağımsızdır. */
@@ -21,12 +23,13 @@ export type AnalysisStatus = 'completed' | 'partial' | 'failed';
 export type ModuleKey = 'url' | 'visual' | 'text' | 'html';
 
 /**
+ * - pending / running: modül henüz bitmedi
  * - completed:   modül çalıştı ve bulgu üretti
  * - unavailable: modül çalıştı ama incelenecek veri yoktu (ör. ekran görüntüsü alınamadı)
  * - skipped:     önceki bir adım başarısız olduğu için modül çalıştırılmadı
  * - failed:      modül hata ile sonlandı
  */
-export type ModuleStatus = 'completed' | 'unavailable' | 'skipped' | 'failed';
+export type ModuleStatus = 'pending' | 'running' | 'completed' | 'unavailable' | 'skipped' | 'failed';
 
 /** İlerleme ekranında gösterilen aşamalar. */
 export type AnalysisStage = 'url_check' | 'page_fetch' | 'content_inspection' | 'scoring';
@@ -42,8 +45,13 @@ export interface AnalyzeRequest {
 
 export interface AnalyzeResponse {
   id: string;
-  state: 'queued' | 'running';
+  /** "done": istek hemen sonuçlandı (ör. analiz motoru kullanılamıyor). */
+  state: 'queued' | 'running' | 'done';
+  status?: string;
+  error?: { code: string; message: string } | null;
 }
+
+export type AnalysisMode = 'full' | 'url_only';
 
 export interface Finding {
   id: string;
@@ -70,6 +78,7 @@ interface ModuleBase<K extends ModuleKey, D> {
   unavailableReason?: string;
   findings: Finding[];
   data: D | null;
+  durationMs?: number | null;
 }
 
 export interface UrlModuleData {
@@ -133,11 +142,11 @@ export interface AnalysisModules {
 
 export interface RiskAssessment {
   level: RiskLevel;
-  /** Modelin birleşik risk puanı (0–100). */
-  score: number;
-  summary: string;
-  /** Kullanıcıya önerilen davranış. */
-  recommendation: string;
+  /** Modelin birleşik risk puanı (0–100). Bilinmiyorsa null. */
+  score: number | null;
+  summary: string | null;
+  /** Kullanıcıya önerilen davranış. null ise arayüz düzeye göre genel öneriyi gösterir. */
+  recommendation: string | null;
 }
 
 export interface AnalysisFailure {
@@ -152,13 +161,15 @@ export interface AnalysisResult {
   finalUrl: string | null;
   /** ISO 8601 */
   requestedAt: string;
-  /** ISO 8601 */
-  completedAt: string;
-  durationMs: number;
+  /** ISO 8601; bitmemiş analizlerde null. */
+  completedAt: string | null;
+  durationMs: number | null;
   status: AnalysisStatus;
   risk: RiskAssessment | null;
   failure: AnalysisFailure | null;
   modules: AnalysisModules;
+  analysisMode: AnalysisMode | null;
+  modelVersion: string | null;
   /** Sonuç örnek veriden mi üretildi? */
   isDemo: boolean;
 }
@@ -172,9 +183,25 @@ export interface HistoryEntry {
   submittedUrl: string;
   finalUrl: string | null;
   analyzedAt: string;
-  status: AnalysisStatus;
+  status: AnalysisStatus | 'pending' | 'running';
   riskLevel: RiskLevel | null;
 }
 
 /** Geçmiş filtresinde kullanılan sonuç grupları. */
 export type ResultFilter = 'all' | RiskLevel | 'failed';
+
+/** GET /api/history sorgusu */
+export interface HistoryQuery {
+  search: string;
+  result: ResultFilter;
+  limit?: number;
+}
+
+/** GET /api/history yanıtı */
+export interface HistoryPage {
+  items: HistoryEntry[];
+  /** Arama ve seçili filtreyle eşleşen kayıt sayısı. */
+  total: number;
+  /** Mevcut arama için filtre başına kayıt sayıları. */
+  counts: Record<ResultFilter, number>;
+}

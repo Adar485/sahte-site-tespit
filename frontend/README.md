@@ -1,81 +1,93 @@
 # Sahte Site Avcıları — Frontend
 
-React + TypeScript + Vite + Tailwind CSS (v4) + Lucide ile yazılmış arayüz.
-Bu sürüm **demo veri** ile çalışır; gerçek web sitesi analizi yapılmaz.
+React 19 + TypeScript + Vite + Tailwind CSS (v4) + Lucide.
+By default the app is in **live mode** and talks to the FastAPI backend in `../backend`.
 
-## Kurulum ve çalıştırma
+## Quick start: `baslat.bat`
 
-Gereksinim: Node.js 20 veya üzeri.
+Double-click **`baslat.bat`** in the project root. It checks the requirements and free ports,
+then opens two windows, **Backend (port 8000)** and **Frontend (port 5173)**.
+Then open **http://localhost:5173**.
 
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173
+To stop the applications, press **Ctrl+C** in each window and close it. The launcher never stops
+existing processes. If a port is already in use, it reports the process and starts nothing.
+It installs nothing: run `npm install` (frontend) and `python -m pip install -r requirements.txt`
+(backend) once beforehand, and fill in `backend\.env`.
+
+## Running locally (Windows PowerShell)
+
+To start the two applications by hand instead, start the backend first (see `backend/README.md` for its `.env`):
+
+```powershell
+cd C:\Users\<you>\Desktop\sahte_site_tespit\backend
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Diğer komutlar:
+Then the frontend, in a second terminal:
 
-```bash
-npm run build      # tür denetimi + üretim derlemesi (dist/)
-npm run preview    # derlenmiş sürümü http://localhost:4173 adresinde sunar
-npm run typecheck  # yalnızca TypeScript denetimi
+```powershell
+cd C:\Users\<you>\Desktop\sahte_site_tespit\frontend
+npm install          # first time only
+npm run dev
 ```
 
-## Demo senaryoları
-
-Ana sayfadaki "Örnek adreslerle deneyin" listesi her durumu gösterir:
-
-| Adres | Sonuç |
+| Application | Address |
 | --- | --- |
-| `www.example.com` | Düşük risk |
-| `example-destek.test/hesap/guncelle` | Şüpheli |
-| `http://examp1e.test/giris` | Yüksek phishing riski (yönlendirmeli) |
-| `kampanya.example.net/odul-kazandiniz` | Kısmi analiz: yalnızca URL |
-| `bos-sayfa.example.org` | Ekran görüntüsü ve metin eksik |
-| `ulasilamayan.invalid` | Sayfaya ulaşılamadı |
-| `yavas.example.net` | Zaman aşımı |
-| Listede olmayan herhangi bir adres | Analiz servisine ulaşılamıyor |
+| Frontend (Vite dev server) | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API docs | http://localhost:8000/docs |
 
-Tüm alan adları ayrılmış örnek alan adlarıdır (example.*, .test, .invalid).
-Geçmiş ve demo sonuçları tarayıcının `localStorage` alanında tutulur. Geçmiş boşken
-"Örnek geçmiş yükle" düğmesiyle örnek kayıtlar eklenebilir.
+The backend allows browser requests from `http://localhost:5173` and `http://127.0.0.1:5173` (`CORS_ORIGINS` in `backend/.env`).
 
-## Yapı
+Other commands:
+
+```powershell
+npm run build      # type-check and production build (dist/)
+npm run preview    # serve the build at http://localhost:4173 (add this origin to CORS_ORIGINS to use it)
+```
+
+## Environment variables
+
+Optional. Copy `.env.example` to `.env.local` (ignored by Git) to change them:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | `http://localhost:8000` | Backend address |
+| `VITE_ANALYSIS_MODE` | `live` | `live`: use the backend. `demo`: local sample data, no backend calls |
+
+`VITE_` variables are embedded in the browser bundle. Never put database settings or secrets
+here; MySQL settings live only in `backend/.env`.
+
+## Live mode
+
+- **Analysis:** `POST /api/analyze`, then `GET /api/result/{id}` is polled every 1.5 s while the
+  analysis is queued or running. Polling stops on completion or failure, when you leave the page, or
+  when another analysis is opened. After 3 minutes the page stops waiting and offers "Yeniden kontrol et".
+  This frontend time limit is separate from the analysis status stored on the server.
+- **History:** `GET /api/history` (search and result filter run on the server), with deletion of one
+  record through `DELETE /api/analyses/{id}` after confirmation. "Clear all history" exists only in demo mode.
+- **Analysis engine:** not implemented yet. The backend records each request as failed with
+  `service_unavailable`, and the result page says so. No scores or findings are shown.
+
+The request and response formats are documented in `backend/README.md`.
+
+## Demo mode
+
+Start with `VITE_ANALYSIS_MODE=demo` (for example in `.env.local`). A "Demo modu" bar is shown at the top, and the
+home page lists sample addresses (reserved example domains) covering every result state. Demo results and demo
+history are stored only in the browser (`localStorage`) and are never sent to or mixed with the backend history.
+
+## Structure
 
 ```
 src/
-  types/analysis.ts      İstek, sonuç, modül bulgusu ve geçmiş tipleri (API sözleşmesi)
+  types/analysis.ts      Shared types; mirror backend/app/schemas/analysis.py
   services/
-    types.ts             AnalysisService arayüzü ve ServiceError
-    apiService.ts        Gerçek API istemcisi (POST /api/analyze, GET /api/result/{id})
-    index.ts             Sağlayıcı seçimi (demo / api)
-    historyStore.ts      Yerel analiz geçmişi
-  demo/
-    fixtures.ts          Örnek senaryolar
-    demoService.ts       AnalysisService'in demo uygulaması
-  hooks/                 Analiz başlatma, sonuç sorgulama, geçmiş
-  components/            Arayüz bileşenleri (result/ altında sonuç ekranı parçaları)
-  pages/                 Analiz, sonuç, geçmiş ve 404 sayfaları
-  lib/                   URL doğrulama, biçimlendirme, Türkçe etiketler
+    types.ts             AnalysisService interface, ServiceError codes
+    apiService.ts        Live client (fetch, 15 s per-request timeout)
+    index.ts             Picks live or demo
+  demo/                  Demo provider, fixtures, demo-only local history
+  hooks/                 useStartAnalysis, useAnalysisJob (polling), useHistoryQuery
+  components/, pages/    Screens (unchanged design)
+  lib/                   URL validation, formatting, Turkish labels
 ```
-
-Arayüz bileşenleri yalnızca `services/index.ts` üzerinden veri alır; demo verisine doğrudan bağlı değildir.
-
-## Gerçek API'ye geçiş
-
-`.env.example` dosyasını `.env.local` olarak kopyalayıp şunu ayarlayın:
-
-```
-VITE_ANALYSIS_MODE=api
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-Arayüzün beklediği uç noktalar:
-
-- `POST /api/analyze` — gövde `{ "url": "https://..." }`, yanıt `{ "id": "...", "state": "queued" | "running" }`
-- `GET /api/result/{id}` — sonuç hazır değilse `{ id, state: "running", stage, submittedUrl }`,
-  hazırsa `{ id, state: "done", result: AnalysisResult }`. Sonuç bulunamazsa `404`.
-
-`stage` değerleri: `url_check`, `page_fetch`, `content_inspection`, `scoring`.
-Tüm alanlar `src/types/analysis.ts` içinde tanımlıdır. Arayüz, sonuç hazır olana kadar
-1,5 saniyede bir sorgu yapar. API modunda demo bildirimi ve örnek adres listesi gizlenir.

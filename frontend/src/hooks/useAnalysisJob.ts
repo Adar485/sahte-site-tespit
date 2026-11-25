@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { analysisService, ServiceError, toServiceError } from '../services';
-import { historyStore, toHistoryEntry } from '../services/historyStore';
 import type { AnalysisResult, AnalysisStage } from '../types/analysis';
 
-/** Sonuç bu süre içinde hazır olmazsa istemci beklemeyi bırakır. */
+/**
+ * Sonuç bu süre içinde hazır olmazsa arayüz beklemeyi bırakır. Bu, analizin
+ * başarısız olduğu anlamına gelmez; kullanıcı "Yeniden kontrol et" ile devam edebilir.
+ */
 const CLIENT_TIMEOUT_MS = 3 * 60 * 1000;
 /** Tüm aşamalar bittiğinde ilerleme listesinin tamamlanmış hâliyle görünme süresi. */
 const COMPLETION_HOLD_MS = 900;
@@ -16,8 +18,10 @@ export type JobView =
   | { phase: 'error'; error: ServiceError };
 
 /**
- * Bir analizi kimliğine göre izler: sonuç hazır değilse düzenli aralıklarla
- * GET /api/result/{id} sorgular, hazır olduğunda geçmişe kaydeder.
+ * Bir analizi kimliğine göre izler. Yalnızca analiz beklemede ya da sürerken
+ * GET /api/result/{id} düzenli aralıklarla sorgulanır; tamamlanma ya da hata
+ * durumunda, bileşen kaldırıldığında veya başka bir analiz seçildiğinde sorgu durur.
+ * Eski bir analize ait geç gelen yanıtlar iptal edilen sinyal sayesinde yok sayılır.
  */
 export function useAnalysisJob(id: string) {
   const [view, setView] = useState<JobView>({ phase: 'loading' });
@@ -37,8 +41,12 @@ export function useAnalysisJob(id: string) {
         const job = await analysisService.getResult(id, { signal });
         if (signal.aborted) return;
 
+        if (job.id !== id) {
+          // Yanıt istenen kayda ait değil: başka bir sonucu göstermek yerine hata ver.
+          setView({ phase: 'error', error: new ServiceError('invalid_response', 'Servisten beklenmeyen bir yanıt alındı.') });
+          return;
+        }
         if (job.state === 'done') {
-          historyStore.upsert(toHistoryEntry(job.result));
           if (sawRunning && job.result.status !== 'failed') {
             setView({ phase: 'finishing', result: job.result });
             timer = window.setTimeout(() => setView({ phase: 'done', result: job.result }), COMPLETION_HOLD_MS);
@@ -54,7 +62,10 @@ export function useAnalysisJob(id: string) {
         if (Date.now() - startedAt > CLIENT_TIMEOUT_MS) {
           setView({
             phase: 'error',
-            error: new ServiceError('service_unavailable', 'Analiz beklenenden uzun sürdü. Biraz sonra sonucu yeniden açmayı deneyin.'),
+            error: new ServiceError(
+              'client_timeout',
+              'Sonuç beklenen süre içinde hazır olmadı. Analiz arka planda sürüyor olabilir; durumu yeniden kontrol edebilirsiniz.',
+            ),
           });
           return;
         }

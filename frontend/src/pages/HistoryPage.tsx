@@ -1,42 +1,46 @@
-import { ArrowRight, ChevronRight, CircleDashed, DatabaseZap, History, ScanSearch, Search, SearchX, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import {
+  ArrowRight,
+  ChevronRight,
+  CircleDashed,
+  DatabaseZap,
+  History,
+  Loader2,
+  RotateCcw,
+  ScanSearch,
+  Search,
+  SearchX,
+  ServerOff,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { RiskTag, toneOf } from '../components/risk';
 import { StatePanel } from '../components/StatePanel';
 import { Button, ButtonLink, Eyebrow, Panel } from '../components/ui';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { useHistory } from '../hooks/useHistory';
+import { useHistoryQuery } from '../hooks/useHistoryQuery';
 import { formatShortDate, formatTime } from '../lib/format';
 import { FILTER_LABELS } from '../lib/labels';
 import { displayUrl } from '../lib/url';
-import { isDemoMode, loadDemoSamples } from '../services';
-import { historyStore, toHistoryEntry } from '../services/historyStore';
-import type { HistoryEntry, ResultFilter } from '../types/analysis';
+import { analysisService, isDemoMode, toServiceError } from '../services';
+import type { HistoryEntry, HistoryPage as HistoryPageData, ResultFilter } from '../types/analysis';
 
 const FILTERS: ResultFilter[] = ['all', 'low', 'suspicious', 'high', 'failed'];
-
-function matchesFilter(entry: HistoryEntry, filter: ResultFilter) {
-  if (filter === 'all') return true;
-  if (filter === 'failed') return entry.status === 'failed';
-  return entry.riskLevel === filter;
-}
-
-function matchesQuery(entry: HistoryEntry, query: string) {
-  if (!query) return true;
-  const haystack = `${entry.submittedUrl} ${entry.finalUrl ?? ''}`.toLocaleLowerCase('tr');
-  return haystack.includes(query.toLocaleLowerCase('tr'));
-}
+const EMPTY_COUNTS: Record<ResultFilter, number> = { all: 0, low: 0, suspicious: 0, high: 0, failed: 0 };
 
 type PendingDelete = { kind: 'one'; entry: HistoryEntry } | { kind: 'all' } | null;
 
 export function HistoryPage() {
   useDocumentTitle('Analiz geçmişi');
-  const entries = useHistory();
   const [params, setParams] = useSearchParams();
   const query = params.get('ara') ?? '';
   const filter = (FILTERS.includes(params.get('sonuc') as ResultFilter) ? params.get('sonuc') : 'all') as ResultFilter;
+  const { view, reload } = useHistoryQuery(query.trim(), filter);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
 
   const updateParam = (key: string, value: string, empty: string) => {
@@ -46,31 +50,40 @@ export function HistoryPage() {
     setParams(next, { replace: true });
   };
 
-  const counts = useMemo(() => {
-    const searched = entries.filter((entry) => matchesQuery(entry, query.trim()));
-    return Object.fromEntries(FILTERS.map((item) => [item, searched.filter((entry) => matchesFilter(entry, item)).length])) as Record<ResultFilter, number>;
-  }, [entries, query]);
+  // Yükleme sırasında önceki sonuç ekranda kalır; böylece arama kutusu odağını kaybetmez.
+  const page: HistoryPageData | null = view.phase === 'ready' ? view.page : view.phase === 'loading' ? view.previous : null;
+  const counts = page?.counts ?? EMPTY_COUNTS;
+  const items = page?.items ?? [];
+  const isLoading = view.phase === 'loading';
+  const historyIsEmpty = page !== null && !query.trim() && filter === 'all' && counts.all === 0;
 
-  const visible = useMemo(
-    () => entries.filter((entry) => matchesFilter(entry, filter) && matchesQuery(entry, query.trim())),
-    [entries, filter, query],
-  );
-
-  const confirmDelete = () => {
-    if (!pendingDelete) return;
-    if (pendingDelete.kind === 'all') {
-      historyStore.clear();
-      setAnnouncement('Analiz geçmişi temizlendi.');
-    } else {
-      historyStore.remove(pendingDelete.entry.id);
-      setAnnouncement(`${displayUrl(pendingDelete.entry.submittedUrl)} kaydı silindi.`);
+  const confirmDelete = async () => {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      if (pendingDelete.kind === 'all') {
+        await analysisService.clearHistory?.();
+        setAnnouncement('Analiz geçmişi temizlendi.');
+      } else {
+        await analysisService.deleteAnalysis(pendingDelete.entry.id);
+        setAnnouncement(`${displayUrl(pendingDelete.entry.submittedUrl)} kaydı silindi.`);
+      }
+    } catch (error) {
+      const serviceError = toServiceError(error);
+      // Kayıt zaten silinmişse listeyi yenilemek yeterli.
+      if (serviceError.code !== 'not_found') setActionError(serviceError.message);
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
+      reload();
     }
-    setPendingDelete(null);
   };
 
-  const loadSamples = () => {
-    historyStore.addMany(loadDemoSamples().map(toHistoryEntry));
+  const loadSamples = async () => {
+    await analysisService.loadSamples?.();
     setAnnouncement('Örnek geçmiş kayıtları yüklendi.');
+    reload();
   };
 
   return (
@@ -80,10 +93,12 @@ export function HistoryPage() {
           <Eyebrow>Geçmiş</Eyebrow>
           <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.02em] text-ink sm:text-4xl">Analiz geçmişi</h1>
           <p className="mt-2 max-w-xl text-[15px] leading-6 text-ink-soft">
-            Bu tarayıcıda yaptığınız analizler. Kayıtlar yalnızca bu cihazda saklanır.
+            {isDemoMode
+              ? 'Demo modu: örnek analizler yalnızca bu tarayıcıda saklanır.'
+              : 'Analiz servisinde kayıtlı analizler. En yeni kayıtlar en üstte gösterilir.'}
           </p>
         </div>
-        {entries.length > 0 && (
+        {analysisService.clearHistory && counts.all > 0 && (
           <Button variant="ghost" icon={Trash2} onClick={() => setPendingDelete({ kind: 'all' })} className="self-start text-coral hover:text-coral sm:self-auto">
             Geçmişi temizle
           </Button>
@@ -94,17 +109,56 @@ export function HistoryPage() {
         {announcement}
       </p>
 
-      {entries.length === 0 ? (
+      {actionError && (
+        <div className="mt-6 rounded-2xl border border-amber/30 bg-amber-soft/50 p-5">
+          <StatePanel
+            alert
+            tone="warning"
+            icon={ServerOff}
+            title="Kayıt silinemedi"
+            actions={
+              <Button variant="secondary" onClick={() => setActionError(null)}>
+                Kapat
+              </Button>
+            }
+          >
+            <p>{actionError}</p>
+          </StatePanel>
+        </div>
+      )}
+
+      {view.phase === 'error' ? (
+        <Panel className="mt-8 p-6 sm:p-10">
+          <StatePanel
+            alert
+            tone="warning"
+            icon={ServerOff}
+            title="Geçmiş yüklenemedi"
+            actions={
+              <Button icon={RotateCcw} onClick={reload}>
+                Yeniden dene
+              </Button>
+            }
+          >
+            <p>{view.error.message}</p>
+          </StatePanel>
+        </Panel>
+      ) : page === null ? (
+        <p role="status" className="mt-10 flex items-center gap-3 text-ink-soft">
+          <Loader2 aria-hidden className="size-5 motion-safe:animate-spin" />
+          Geçmiş yükleniyor…
+        </p>
+      ) : historyIsEmpty ? (
         <Panel className="mt-8 p-6 sm:p-10">
           <StatePanel
             icon={History}
-            title="Henüz bir analiz yapmadınız"
+            title="Henüz bir analiz yapılmadı"
             actions={
               <>
                 <ButtonLink to="/" icon={ScanSearch}>
                   İlk analizi başlat
                 </ButtonLink>
-                {isDemoMode && (
+                {analysisService.loadSamples && (
                   <Button variant="secondary" icon={DatabaseZap} onClick={loadSamples}>
                     Örnek geçmiş yükle
                   </Button>
@@ -176,11 +230,13 @@ export function HistoryPage() {
             </fieldset>
           </div>
 
-          <p className="mt-5 text-[14px] text-ink-muted" aria-live="polite">
-            {visible.length === entries.length ? `${entries.length} kayıt` : `${entries.length} kayıttan ${visible.length} tanesi gösteriliyor`}
+          <p className="mt-5 flex items-center gap-2 text-[14px] text-ink-muted" aria-live="polite">
+            {isLoading && <Loader2 aria-hidden className="size-4 motion-safe:animate-spin" />}
+            {page.total === counts.all ? `${counts.all} kayıt` : `${counts.all} kayıttan ${page.total} tanesi gösteriliyor`}
+            {items.length < page.total && ` (ilk ${items.length})`}
           </p>
 
-          {visible.length === 0 ? (
+          {items.length === 0 ? (
             <Panel className="mt-3 p-6 sm:p-8">
               <StatePanel
                 icon={SearchX}
@@ -195,8 +251,11 @@ export function HistoryPage() {
               </StatePanel>
             </Panel>
           ) : (
-            <ul className="mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
-              {visible.map((entry) => (
+            <ul
+              aria-busy={isLoading}
+              className={`mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card transition-opacity ${isLoading ? 'opacity-60' : ''}`}
+            >
+              {items.map((entry) => (
                 <HistoryRow key={entry.id} entry={entry} onDelete={() => setPendingDelete({ kind: 'one', entry })} />
               ))}
             </ul>
@@ -209,14 +268,14 @@ export function HistoryPage() {
         title={pendingDelete?.kind === 'all' ? 'Tüm geçmiş silinsin mi?' : 'Bu kayıt silinsin mi?'}
         description={
           pendingDelete?.kind === 'all'
-            ? `${entries.length} analiz kaydı bu cihazdan kalıcı olarak silinecek. Bu işlem geri alınamaz.`
+            ? `${counts.all} analiz kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz.`
             : pendingDelete?.kind === 'one'
-              ? `${displayUrl(pendingDelete.entry.submittedUrl)} için yapılan analiz kaydı silinecek. Bu işlem geri alınamaz.`
+              ? `${displayUrl(pendingDelete.entry.submittedUrl)} için yapılan analiz kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz.`
               : ''
         }
         confirmLabel={pendingDelete?.kind === 'all' ? 'Geçmişi temizle' : 'Kaydı sil'}
         onConfirm={confirmDelete}
-        onCancel={() => setPendingDelete(null)}
+        onCancel={() => !deleting && setPendingDelete(null)}
       />
     </div>
   );
@@ -228,7 +287,7 @@ function HistoryRow({ entry, onDelete }: { entry: HistoryEntry; onDelete(): void
     <li className="group relative flex items-center gap-3 px-4 py-4 transition-colors hover:bg-paper sm:gap-5 sm:px-6">
       <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_130px] sm:items-center sm:gap-5">
         <div className="flex flex-wrap items-center gap-1.5 sm:order-none">
-          <RiskTag tone={toneOf(entry.riskLevel)} />
+          <RiskTag tone={toneOf(entry.riskLevel, entry.status)} />
           {entry.status === 'partial' && (
             <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted">
               <CircleDashed aria-hidden className="size-3.5" /> Kısmi

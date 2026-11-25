@@ -56,6 +56,8 @@ function base(context: ScenarioContext) {
     requestedAt: context.requestedAt,
     completedAt: context.completedAt,
     durationMs: context.durationMs,
+    analysisMode: 'full' as AnalysisResult['analysisMode'],
+    modelVersion: null,
     isDemo: true as const,
   };
 }
@@ -505,6 +507,7 @@ const partialUrlOnly: DemoScenario = {
     const parts = urlParts(context.submittedUrl);
     return {
       ...base(context),
+      analysisMode: 'url_only',
       finalUrl: null,
       status: 'partial',
       failure: null,
@@ -669,6 +672,7 @@ function failedResult(
   const labels = parts.hostname.split('.');
   return {
     ...base(context),
+    analysisMode: null,
     finalUrl: null,
     status: 'failed',
     failure,

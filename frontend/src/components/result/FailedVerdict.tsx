@@ -16,9 +16,9 @@ const FAILURE_COPY: Record<AnalysisFailure['code'], { title: string; icon: Lucid
     hint: 'Birkaç dakika sonra yeniden deneyebilirsiniz. Yanıt vermeyen bir sayfa da dikkatle ele alınmalıdır.',
   },
   service_unavailable: {
-    title: 'Analiz servisi yanıt vermedi',
+    title: 'Analiz servisi kullanılamıyor',
     icon: CircleSlash,
-    hint: 'Sorun bizim tarafımızda. Biraz sonra yeniden deneyin.',
+    hint: 'Sorun bu adresten değil, analiz servisinden kaynaklanıyor. Servis hazır olduğunda adresi yeniden analiz edebilirsiniz.',
   },
   unknown: {
     title: 'Beklenmeyen bir sorun oluştu',

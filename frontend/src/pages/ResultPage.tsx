@@ -1,4 +1,4 @@
-import { ArrowLeft, FileX, History, Loader2, RotateCcw, ScanSearch, ServerOff } from 'lucide-react';
+import { ArrowLeft, FileX, History, Hourglass, Loader2, RotateCcw, ScanSearch, ServerOff } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { AnalysisProgress } from '../components/AnalysisProgress';
 import { FailedVerdict } from '../components/result/FailedVerdict';
@@ -66,12 +66,18 @@ export function ResultPage() {
                 alert
                 headingLevel="h1"
                 tone="warning"
-                icon={ServerOff}
-                title="Analiz servisine ulaşılamıyor"
+                icon={view.error.code === 'client_timeout' ? Hourglass : ServerOff}
+                title={
+                  view.error.code === 'client_timeout'
+                    ? 'Sonuç henüz hazır değil'
+                    : view.error.code === 'request_timeout'
+                      ? 'Sunucu zamanında yanıt vermedi'
+                      : 'Analiz servisine ulaşılamıyor'
+                }
                 actions={
                   <>
                     <Button icon={RotateCcw} onClick={retry}>
-                      Yeniden dene
+                      {view.error.code === 'client_timeout' ? 'Yeniden kontrol et' : 'Yeniden dene'}
                     </Button>
                     <ButtonLink to="/" variant="secondary" icon={ArrowLeft}>
                       Ana sayfaya dön
@@ -86,7 +92,8 @@ export function ResultPage() {
         </div>
       );
     case 'done':
-      return <ResultView result={view.result} />;
+      // key: başka bir analize geçildiğinde sekme vb. iç durum sıfırlanır.
+      return <ResultView key={view.result.id} result={view.result} />;
   }
 }
 

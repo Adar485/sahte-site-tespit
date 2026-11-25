@@ -1,10 +1,12 @@
-import { Check, CircleDashed, Minus, X } from 'lucide-react';
+import { Check, CircleDashed, Clock, Loader2, Minus, X } from 'lucide-react';
 import { formatDateTime, formatDuration } from '../../lib/format';
-import { MODULE_LABELS, MODULE_ORDER, MODULE_STATUS_LABELS } from '../../lib/labels';
+import { ANALYSIS_MODE_LABELS, MODULE_LABELS, MODULE_ORDER, MODULE_STATUS_LABELS } from '../../lib/labels';
 import type { AnalysisResult, ModuleStatus } from '../../types/analysis';
 import { UrlText } from '../ui';
 
 export const MODULE_STATUS_ICONS: Record<ModuleStatus, typeof Check> = {
+  pending: Clock,
+  running: Loader2,
   completed: Check,
   unavailable: CircleDashed,
   skipped: Minus,
@@ -14,6 +16,7 @@ export const MODULE_STATUS_ICONS: Record<ModuleStatus, typeof Check> = {
 export function ResultMeta({ result }: { result: AnalysisResult }) {
   const completed = MODULE_ORDER.filter((key) => result.modules[key].status === 'completed').length;
   const redirected = result.finalUrl && result.finalUrl !== result.submittedUrl;
+  const analyzedAt = result.completedAt ?? result.requestedAt;
 
   return (
     <section aria-labelledby="analiz-bilgileri" className="rounded-2xl border border-line bg-card">
@@ -37,7 +40,7 @@ export function ResultMeta({ result }: { result: AnalysisResult }) {
                   {redirected && <span className="mt-1 block text-[13px] font-semibold text-amber">Yönlendirme sonrası farklı adres</span>}
                 </>
               ) : (
-                <span className="text-ink-muted">Belirlenemedi: sayfaya ulaşılamadı</span>
+                <span className="text-ink-muted">Belirlenemedi</span>
               )}
             </dd>
           </div>
@@ -47,12 +50,24 @@ export function ResultMeta({ result }: { result: AnalysisResult }) {
           <div>
             <dt className="text-[13px] font-bold text-ink-muted">Analiz zamanı</dt>
             <dd className="mt-1 text-[15px] text-ink">
-              <time dateTime={result.completedAt}>{formatDateTime(result.completedAt)}</time>
+              <time dateTime={analyzedAt}>{formatDateTime(analyzedAt)}</time>
             </dd>
           </div>
           <div>
             <dt className="text-[13px] font-bold text-ink-muted">Süre</dt>
-            <dd className="mt-1 text-[15px] tabular-nums text-ink">{formatDuration(result.durationMs)}</dd>
+            <dd className="mt-1 text-[15px] tabular-nums text-ink">{result.durationMs === null ? <span className="text-ink-muted">Bilinmiyor</span> : formatDuration(result.durationMs)}</dd>
+          </div>
+          <div>
+            <dt className="text-[13px] font-bold text-ink-muted">Analiz kapsamı</dt>
+            <dd className="mt-1 text-[15px] text-ink">
+              {result.analysisMode ? ANALYSIS_MODE_LABELS[result.analysisMode] : <span className="text-ink-muted">Belirtilmedi</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[13px] font-bold text-ink-muted">Model sürümü</dt>
+            <dd className="mt-1 text-[15px] text-ink">
+              {result.modelVersion ? <span className="font-mono text-[14px]">{result.modelVersion}</span> : <span className="text-ink-muted">Yok</span>}
+            </dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-[13px] font-bold text-ink-muted">

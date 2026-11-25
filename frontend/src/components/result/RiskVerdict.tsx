@@ -1,5 +1,5 @@
 import { CircleDashed, Lightbulb } from 'lucide-react';
-import { MODULE_ORDER, RISK_LABELS } from '../../lib/labels';
+import { DEFAULT_RECOMMENDATIONS, MODULE_ORDER, RISK_LABELS } from '../../lib/labels';
 import type { AnalysisResult, RiskAssessment, RiskLevel } from '../../types/analysis';
 import { TONE_STYLES } from '../risk';
 import { Eyebrow } from '../ui';
@@ -11,16 +11,27 @@ const BANDS: Array<{ level: RiskLevel; label: string; from: number; to: number }
 ];
 
 function RiskScale({ risk }: { risk: RiskAssessment }) {
+  const score = risk.score;
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-[13px] font-bold text-ink-soft">Risk puanı</p>
         <p className="tabular-nums text-ink">
-          <span className="text-3xl font-extrabold tracking-tight">{risk.score}</span>
-          <span className="text-[15px] font-semibold text-ink-muted"> / 100</span>
+          {score === null ? (
+            <span className="text-[15px] font-semibold text-ink-muted">Puan yok</span>
+          ) : (
+            <>
+              <span className="text-3xl font-extrabold tracking-tight">{score}</span>
+              <span className="text-[15px] font-semibold text-ink-muted"> / 100</span>
+            </>
+          )}
         </p>
       </div>
-      <div className="relative mt-3" role="img" aria-label={`Risk puanı 100 üzerinden ${risk.score}; ${RISK_LABELS[risk.level]} aralığında.`}>
+      <div className="relative mt-3" role="img" aria-label={
+          score === null
+            ? `Risk düzeyi: ${RISK_LABELS[risk.level]}. Sayısal puan yok.`
+            : `Risk puanı 100 üzerinden ${score}; ${RISK_LABELS[risk.level]} aralığında.`
+        }>
         <div className="flex gap-1">
           {BANDS.map((band) => {
             const active = band.level === risk.level;
@@ -32,11 +43,13 @@ function RiskScale({ risk }: { risk: RiskAssessment }) {
             );
           })}
         </div>
-        <span
-          aria-hidden
-          className="absolute -top-1 h-[18px] w-1.5 -translate-x-1/2 rounded-full border-2 border-card bg-ink"
-          style={{ left: `${risk.score}%` }}
-        />
+        {score !== null && (
+          <span
+            aria-hidden
+            className="absolute -top-1 h-[18px] w-1.5 -translate-x-1/2 rounded-full border-2 border-card bg-ink"
+            style={{ left: `${score}%` }}
+          />
+        )}
       </div>
       <p className="mt-3 text-[13px] leading-5 text-ink-muted">
         Risk puanı tüm bölümlerin bulgularını birleştirir. Aşağıdaki benzerlik puanlarından ayrıdır ve bir olasılık değildir.
@@ -79,13 +92,15 @@ export function RiskVerdict({ result, risk }: { result: AnalysisResult; risk: Ri
               )}
             </div>
           </div>
-          <p className="mt-5 max-w-2xl text-[17px] leading-7 text-ink">{risk.summary}</p>
+          {risk.summary && <p className="mt-5 max-w-2xl text-[17px] leading-7 text-ink">{risk.summary}</p>}
 
           <div className="mt-5 flex max-w-2xl gap-3 rounded-xl bg-paper p-4">
             <Lightbulb aria-hidden className="mt-0.5 size-5 shrink-0 text-ink-soft" />
             <div>
               <p className="text-[14px] font-bold text-ink">Ne yapmalısınız?</p>
-              <p className="mt-0.5 text-[15px] leading-6 text-ink-soft">{risk.recommendation}</p>
+              <p className="mt-0.5 text-[15px] leading-6 text-ink-soft">
+                {risk.recommendation ?? DEFAULT_RECOMMENDATIONS[risk.level]}
+              </p>
             </div>
           </div>
         </div>

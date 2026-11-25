@@ -1,14 +1,25 @@
 /**
  * Örnek veri sağlayıcısı.
  *
+ * Yalnızca VITE_ANALYSIS_MODE=demo ile açıkça seçildiğinde kullanılır.
  * Gerçek API ile aynı sözleşmeyi (AnalysisService) uygular; analiz sürecini
  * zamanlayıcılarla taklit eder ve sonuçları tarayıcının yerel deposunda tutar.
- * Hiçbir web sitesine istek göndermez.
+ * Hiçbir web sitesine ya da arka uca istek göndermez.
  */
 import { readJson, writeJson } from '../lib/storage';
 import { STAGE_ORDER } from '../lib/labels';
 import { ServiceError, type AnalysisService, type RequestOptions } from '../services/types';
-import type { AnalysisJob, AnalysisResult, AnalyzeRequest, AnalyzeResponse } from '../types/analysis';
+import type {
+  AnalysisJob,
+  AnalysisResult,
+  AnalyzeRequest,
+  AnalyzeResponse,
+  HistoryEntry,
+  HistoryPage,
+  HistoryQuery,
+  ResultFilter,
+} from '../types/analysis';
+import { demoHistoryStore, toHistoryEntry } from './demoHistoryStore';
 import { findScenario, scenarioByKey, type ScenarioKey } from './fixtures';
 
 const JOBS_KEY = 'ssa.demo.jobs.v1';
@@ -46,6 +57,15 @@ const results = () => readJson<Record<string, AnalysisResult>>(RESULTS_KEY, {});
 
 function saveResult(result: AnalysisResult) {
   writeJson(RESULTS_KEY, { ...results(), [result.id]: result });
+  demoHistoryStore.upsert([toHistoryEntry(result)]);
+}
+
+const FILTERS: ResultFilter[] = ['all', 'low', 'suspicious', 'high', 'failed'];
+
+function matchesFilter(entry: HistoryEntry, filter: ResultFilter) {
+  if (filter === 'all') return true;
+  if (filter === 'failed') return entry.status === 'failed';
+  return entry.riskLevel === filter;
 }
 
 function buildResult(scenarioKey: ScenarioKey, id: string, url: string, startedAt: number, finishedAt: number) {
@@ -105,6 +125,32 @@ export const demoAnalysisService: AnalysisService = {
     writeJson(JOBS_KEY, allJobs);
     return { id, state: 'done', result };
   },
+
+  async listHistory(query: HistoryQuery, options?: RequestOptions): Promise<HistoryPage> {
+    await wait(150, options?.signal);
+    const term = query.search.trim().toLocaleLowerCase('tr');
+    const searched = demoHistoryStore
+      .list()
+      .filter((entry) => !term || `${entry.submittedUrl} ${entry.finalUrl ?? ''}`.toLocaleLowerCase('tr').includes(term));
+    const counts = Object.fromEntries(
+      FILTERS.map((filter) => [filter, searched.filter((entry) => matchesFilter(entry, filter)).length]),
+    ) as Record<ResultFilter, number>;
+    const matching = searched.filter((entry) => matchesFilter(entry, query.result));
+    return { items: matching.slice(0, query.limit ?? 100), total: matching.length, counts };
+  },
+
+  async deleteAnalysis(id: string, options?: RequestOptions) {
+    await wait(150, options?.signal);
+    demoHistoryStore.remove(id);
+  },
+
+  async clearHistory() {
+    demoHistoryStore.clear();
+  },
+
+  async loadSamples() {
+    createSampleResults();
+  },
 };
 
 /** Boş geçmiş ekranından yüklenebilen örnek geçmiş kayıtları. */
@@ -127,5 +173,6 @@ export function createSampleResults(): AnalysisResult[] {
     return buildResult(sample.scenario, createId(), sample.url, startedAt, finishedAt);
   });
   writeJson(RESULTS_KEY, { ...results(), ...Object.fromEntries(created.map((result) => [result.id, result])) });
+  demoHistoryStore.upsert(created.map(toHistoryEntry));
   return created;
 }
