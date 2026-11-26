@@ -6,6 +6,7 @@ import { KeyFindings } from '../components/result/KeyFindings';
 import { ModuleTabs } from '../components/result/ModuleTabs';
 import { ResultMeta } from '../components/result/ResultMeta';
 import { RiskVerdict } from '../components/result/RiskVerdict';
+import { UnscoredVerdict } from '../components/result/UnscoredVerdict';
 import { StatePanel } from '../components/StatePanel';
 import { Button, ButtonLink, Panel } from '../components/ui';
 import { useAnalysisJob } from '../hooks/useAnalysisJob';
@@ -21,7 +22,7 @@ export function ResultPage() {
 
   const title =
     view.phase === 'done'
-      ? `${view.result.risk ? RISK_LABELS[view.result.risk.level] : FAILED_LABEL} · ${hostnameOf(view.result.submittedUrl)}`
+      ? `${view.result.risk ? RISK_LABELS[view.result.risk.level] : view.result.status === 'failed' ? FAILED_LABEL : 'URL incelemesi'} · ${hostnameOf(view.result.submittedUrl)}`
       : view.phase === 'error'
         ? 'Sonuç açılamadı'
         : 'Analiz sürüyor';
@@ -134,6 +135,8 @@ function ResultView({ result }: { result: AnalysisResult }) {
       <div className="space-y-6">
         {result.risk ? (
           <RiskVerdict result={result} risk={result.risk} />
+        ) : result.status !== 'failed' ? (
+          <UnscoredVerdict />
         ) : (
           <FailedVerdict
             failure={result.failure ?? { code: 'unknown', stage: 'scoring', message: 'Analiz sonucu oluşturulamadı.' }}

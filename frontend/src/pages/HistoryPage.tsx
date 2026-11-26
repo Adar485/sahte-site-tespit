@@ -288,7 +288,7 @@ function HistoryRow({ entry, onDelete }: { entry: HistoryEntry; onDelete(): void
       <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_130px] sm:items-center sm:gap-5">
         <div className="flex flex-wrap items-center gap-1.5 sm:order-none">
           <RiskTag tone={toneOf(entry.riskLevel, entry.status)} />
-          {entry.status === 'partial' && (
+          {entry.status === 'partial' && entry.riskLevel && (
             <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted">
               <CircleDashed aria-hidden className="size-3.5" /> Kısmi
             </span>

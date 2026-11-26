@@ -1,0 +1,4 @@
+{
+  "version": "test-fixture-1",
+  "domains": ["example.com", "example.net", "example.org"]
+}

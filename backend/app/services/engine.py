@@ -1,31 +1,27 @@
 """Analysis engine boundary.
 
-The real engine (URL, screenshot, text and DOM analysis combined by XGBoost)
-is not implemented yet. Until it is, submit() raises AnalysisEngineUnavailable
-and callers record the request as failed with error_code "service_unavailable".
-No scores, findings or results are fabricated here.
+Only URL-only inspection is implemented. It is deterministic, needs no network
+access and runs within the request. Page fetching, the visual, text and DOM
+modules and the XGBoost classifier are not implemented, so no risk level,
+score or model version is produced anywhere.
 """
 
-ENGINE_UNAVAILABLE_MESSAGE = (
-    "Analiz motoru henüz kullanıma hazır değil. İstek kaydedildi, ancak sayfa incelenmedi "
-    "ve risk değerlendirmesi yapılmadı."
-)
+from pathlib import Path
+
+from app.core.config import BACKEND_DIR, get_settings
+from app.services.url_inspection import UrlInspection, inspect_url
+
+MODULE_NOT_IMPLEMENTED_REASON = "Bu analiz bölümü henüz uygulanmadı; yalnızca adres incelendi."
+URL_FAILURE_MESSAGE = "Adres incelenirken beklenmeyen bir sorun oluştu."
 
 
-class AnalysisEngineUnavailable(RuntimeError):
-    def __init__(self, message: str = ENGINE_UNAVAILABLE_MESSAGE) -> None:
-        super().__init__(message)
+def _reference_file() -> Path | None:
+    configured = get_settings().REFERENCE_DOMAINS_FILE.strip()
+    if not configured:
+        return None
+    path = Path(configured)
+    return path if path.is_absolute() else BACKEND_DIR / path
 
 
-def is_available() -> bool:
-    return False
-
-
-def submit(analysis_id: str, url: str) -> None:
-    """Hand an analysis to the engine. Replace with the real runner later.
-
-    The future implementation should start the work (for example in a
-    background worker), set the analysis to "running", and later write the
-    final status, risk and module results.
-    """
-    raise AnalysisEngineUnavailable()
+def run_url_inspection(url: str) -> UrlInspection:
+    return inspect_url(url, _reference_file())

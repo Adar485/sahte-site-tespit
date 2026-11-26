@@ -17,7 +17,7 @@ class CamelModel(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    url: str = Field(description="Absolute http(s) URL, at most 2048 characters.")
+    url: str = Field(description="http(s) URL or bare domain (https:// is assumed), at most 2048 characters.")
 
 
 class ErrorInfo(CamelModel):
@@ -27,7 +27,7 @@ class ErrorInfo(CamelModel):
 
 class AnalyzeResponse(CamelModel):
     id: str
-    # "done" when the request finished immediately (e.g. the engine is unavailable).
+    # "done" when the request finished immediately (URL-only inspection always does).
     state: Literal["queued", "running", "done"]
     status: str
     error: ErrorInfo | None = None

@@ -1,5 +1,4 @@
 import { ArrowDown, Flag, ImageOff, Lock, LockOpen, TextSearch } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { formatNumber } from '../../lib/format';
 import { MODULE_LABELS, PHRASE_CATEGORY_LABELS } from '../../lib/labels';
 import { displayUrl } from '../../lib/url';
@@ -14,33 +13,10 @@ import type {
 } from '../../types/analysis';
 import { StatePanel } from '../StatePanel';
 import { UrlText } from '../ui';
+import { Block, Facts } from './blocks';
 import { FindingList } from './FindingList';
 import { SimilarityMeter, SimilarityNote } from './Similarity';
-
-function Block({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
-  return (
-    <section className="border-t border-line pt-6 first:border-t-0 first:pt-0">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-[16px] font-bold text-ink">{title}</h3>
-        {aside}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Facts({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
-  return (
-    <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <div key={item.label} className="min-w-0">
-          <dt className="text-[13px] font-bold text-ink-muted">{item.label}</dt>
-          <dd className="mt-0.5 text-[15px] text-ink break-words">{item.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
+import { UrlInspectionDetails } from './UrlInspectionDetails';
 
 function SimilarityBlock({ title, matches, emptyText }: { title: string; matches: SimilarityMatch[]; emptyText: string }) {
   return (
@@ -60,7 +36,7 @@ function SimilarityBlock({ title, matches, emptyText }: { title: string; matches
 }
 
 /** Modül hiç çalışmadıysa ya da veri üretemediyse gösterilen bilinçli boş durum. */
-export function ModuleUnavailable({ module }: { module: ModuleResult }) {
+export function ModuleUnavailable({ module, assessed = true }: { module: ModuleResult; assessed?: boolean }) {
   const isSkipped = module.status === 'skipped';
   return (
     <StatePanel
@@ -69,7 +45,9 @@ export function ModuleUnavailable({ module }: { module: ModuleResult }) {
       title={isSkipped ? `${MODULE_LABELS[module.key]} çalıştırılmadı` : module.summary}
     >
       <p>{module.unavailableReason ?? 'Bu bölüm için veri alınamadı.'}</p>
-      <p className="mt-2 text-[14px] text-ink-muted">Genel değerlendirme, yalnızca tamamlanan bölümlerin bulgularıyla yapıldı.</p>
+      <p className="mt-2 text-[14px] text-ink-muted">
+        {assessed ? 'Genel değerlendirme, yalnızca tamamlanan bölümlerin bulgularıyla yapıldı.' : 'Genel risk değerlendirmesi henüz yapılmadı.'}
+      </p>
     </StatePanel>
   );
 }
@@ -78,6 +56,7 @@ export function ModuleUnavailable({ module }: { module: ModuleResult }) {
 
 export function UrlDetails({ module }: { module: UrlModuleResult }) {
   const data = module.data;
+  if (data && 'featureSchemaVersion' in data) return <UrlInspectionDetails findings={module.findings} data={data} />;
   return (
     <div className="space-y-6">
       <Block title="Bulgular">
@@ -166,11 +145,11 @@ function Screenshot({ data, pageUrl }: { data: NonNullable<VisualModuleResult['d
   );
 }
 
-export function VisualDetails({ module, pageUrl }: { module: VisualModuleResult; pageUrl: string | null }) {
+export function VisualDetails({ module, pageUrl, assessed }: { module: VisualModuleResult; pageUrl: string | null; assessed?: boolean }) {
   if (module.status !== 'completed' || !module.data) {
     return (
       <div className="rounded-xl border-2 border-dashed border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-paper)_0_12px,var(--color-card)_12px_24px)] p-5 sm:p-7">
-        <ModuleUnavailable module={module} />
+        <ModuleUnavailable module={module} assessed={assessed} />
       </div>
     );
   }
@@ -202,8 +181,8 @@ const PHRASE_STYLES: Record<KeyPhrase['category'], string> = {
   neutral: 'bg-paper-deep text-ink-soft border-line-strong',
 };
 
-export function TextDetails({ module }: { module: TextModuleResult }) {
-  if (module.status !== 'completed' || !module.data) return <ModuleUnavailable module={module} />;
+export function TextDetails({ module, assessed }: { module: TextModuleResult; assessed?: boolean }) {
+  if (module.status !== 'completed' || !module.data) return <ModuleUnavailable module={module} assessed={assessed} />;
   const data = module.data;
   return (
     <div className="space-y-6">
@@ -241,8 +220,8 @@ export function TextDetails({ module }: { module: TextModuleResult }) {
 
 /* ------------------------------------------------------------------ */
 
-export function HtmlDetails({ module }: { module: HtmlModuleResult }) {
-  if (module.status !== 'completed' || !module.data) return <ModuleUnavailable module={module} />;
+export function HtmlDetails({ module, assessed }: { module: HtmlModuleResult; assessed?: boolean }) {
+  if (module.status !== 'completed' || !module.data) return <ModuleUnavailable module={module} assessed={assessed} />;
   const data = module.data;
   return (
     <div className="space-y-6">

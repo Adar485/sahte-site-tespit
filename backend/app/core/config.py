@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Comma-separated browser origins allowed to call the API (the Vite dev server by default).
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Optional JSON file of reference domains for spelling-similarity comparison
+    # (relative paths are resolved against the backend folder). Empty: no comparison.
+    REFERENCE_DOMAINS_FILE: str = ""
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip().rstrip("/") for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

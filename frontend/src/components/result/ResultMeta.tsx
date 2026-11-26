@@ -40,7 +40,9 @@ export function ResultMeta({ result }: { result: AnalysisResult }) {
                   {redirected && <span className="mt-1 block text-[13px] font-semibold text-amber">Yönlendirme sonrası farklı adres</span>}
                 </>
               ) : (
-                <span className="text-ink-muted">Belirlenemedi</span>
+                <span className="text-ink-muted">
+                  {result.analysisMode === 'url_only' && !result.isDemo ? 'Sayfa açılmadı' : 'Belirlenemedi'}
+                </span>
               )}
             </dd>
           </div>

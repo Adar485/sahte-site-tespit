@@ -112,9 +112,9 @@ export function ModuleTabs({ result, initial = 'url' }: { result: AnalysisResult
             }
           >
             {module.key === 'url' && <UrlDetails module={module} />}
-            {module.key === 'visual' && <VisualDetails module={module} pageUrl={pageUrl} />}
-            {module.key === 'text' && <TextDetails module={module} />}
-            {module.key === 'html' && <HtmlDetails module={module} />}
+            {module.key === 'visual' && <VisualDetails module={module} pageUrl={pageUrl} assessed={result.risk !== null} />}
+            {module.key === 'text' && <TextDetails module={module} assessed={result.risk !== null} />}
+            {module.key === 'html' && <HtmlDetails module={module} assessed={result.risk !== null} />}
           </ErrorBoundary>
         </div>
       </div>

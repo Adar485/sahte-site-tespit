@@ -25,7 +25,8 @@ export function FindingItem({ finding, context }: { finding: Finding; context?: 
           {context && <span className="font-semibold normal-case tracking-normal"> · {context}</span>}
         </p>
         <h4 className="mt-0.5 text-[15px] font-bold text-ink">{finding.title}</h4>
-        <p className="mt-1 text-[15px] leading-6 text-ink-soft">{finding.description}</p>
+        {/* Bitişik harfler kapalı: "xn--" tek bir tire gibi görünmemeli. */}
+        <p className="mt-1 text-[15px] leading-6 text-ink-soft break-words [font-variant-ligatures:none]">{finding.description}</p>
       </div>
     </li>
   );

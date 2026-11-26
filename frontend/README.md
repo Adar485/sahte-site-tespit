@@ -43,6 +43,7 @@ Other commands:
 
 ```powershell
 npm run build      # type-check and production build (dist/)
+npm test           # address validation cases shared with the backend (Node 22.18+)
 npm run preview    # serve the build at http://localhost:4173 (add this origin to CORS_ORIGINS to use it)
 ```
 
@@ -66,8 +67,10 @@ here; MySQL settings live only in `backend/.env`.
   This frontend time limit is separate from the analysis status stored on the server.
 - **History:** `GET /api/history` (search and result filter run on the server), with deletion of one
   record through `DELETE /api/analyses/{id}` after confirmation. "Clear all history" exists only in demo mode.
-- **Analysis engine:** not implemented yet. The backend records each request as failed with
-  `service_unavailable`, and the result page says so. No scores or findings are shown.
+- **URL-only inspection:** the typed address is sent as is (trimmed) and normalised by the backend.
+  The result page shows the parsed address, measured features, findings and (if a list is configured)
+  spelling similarity, and states that no overall risk has been calculated. History shows these records
+  as "Değerlendirilmedi". The page is not visited; the other modules and the classifier are not implemented.
 
 The request and response formats are documented in `backend/README.md`.
 

@@ -1,6 +1,7 @@
 import { AlertCircle, ArrowRight, Globe, X } from 'lucide-react';
 import { forwardRef, useId, useImperativeHandle, useRef, useState, type FormEvent } from 'react';
 import { normalizeUrl, validationMessage } from '../lib/url';
+import { isDemoMode } from '../services';
 import { Button } from './ui';
 
 export interface UrlFormHandle {
@@ -49,7 +50,8 @@ export const UrlForm = forwardRef<UrlFormHandle, UrlFormProps>(function UrlForm(
       inputRef.current?.focus();
       return;
     }
-    onSubmit(result.url);
+    // Canlı modda yazılan adres gönderilir; tek normalleştirme arka uçtadır.
+    onSubmit(isDemoMode ? result.url : value.trim());
   }
 
   const frameState = submitting

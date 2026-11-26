@@ -1,8 +1,8 @@
-import { CircleSlash, Clock, Shield, ShieldAlert, ShieldX, type LucideIcon } from 'lucide-react';
+import { CircleSlash, Clock, ScanSearch, Shield, ShieldAlert, ShieldX, type LucideIcon } from 'lucide-react';
 import { FAILED_LABEL, RISK_LABELS, RISK_SHORT_LABELS } from '../lib/labels';
 import type { HistoryEntry, RiskLevel } from '../types/analysis';
 
-export type Tone = RiskLevel | 'failed' | 'pending';
+export type Tone = RiskLevel | 'failed' | 'pending' | 'unscored';
 
 interface ToneStyle {
   icon: LucideIcon;
@@ -17,6 +17,7 @@ export const TONE_STYLES: Record<Tone, ToneStyle> = {
   suspicious: { icon: ShieldAlert, text: 'text-amber', soft: 'bg-amber-soft', bright: 'bg-amber-bright', border: 'border-amber/30' },
   high: { icon: ShieldX, text: 'text-coral', soft: 'bg-coral-soft', bright: 'bg-coral-bright', border: 'border-coral/30' },
   failed: { icon: CircleSlash, text: 'text-ink-soft', soft: 'bg-paper-deep', bright: 'bg-ink-muted', border: 'border-line-strong' },
+  unscored: { icon: ScanSearch, text: 'text-ink-soft', soft: 'bg-paper-deep', bright: 'bg-ink-muted', border: 'border-line-strong' },
   pending: { icon: Clock, text: 'text-blue-strong', soft: 'bg-blue-soft', bright: 'bg-blue', border: 'border-blue/30' },
 };
 
@@ -26,12 +27,14 @@ export const TONE_STYLES: Record<Tone, ToneStyle> = {
  */
 export function toneOf(level: RiskLevel | null, status?: HistoryEntry['status']): Tone {
   if (status === 'pending' || status === 'running') return 'pending';
-  return level ?? 'failed';
+  if (level) return level;
+  return status === 'failed' ? 'failed' : 'unscored';
 }
 
 export function toneLabel(tone: Tone, short = false): string {
   if (tone === 'failed') return short ? 'Tamamlanamadı' : FAILED_LABEL;
   if (tone === 'pending') return 'Sürüyor';
+  if (tone === 'unscored') return 'Değerlendirilmedi';
   return short ? RISK_SHORT_LABELS[tone] : RISK_LABELS[tone];
 }
 

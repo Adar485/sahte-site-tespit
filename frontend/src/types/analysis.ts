@@ -39,13 +39,13 @@ export type FailureCode = 'unreachable' | 'timeout' | 'service_unavailable' | 'u
 export type FindingSeverity = 'info' | 'low' | 'medium' | 'high';
 
 export interface AnalyzeRequest {
-  /** Normalleştirilmiş, http(s) şemalı tam adres. */
+  /** Canlı modda kullanıcının yazdığı adres (kırpılmış). Normalleştirmeyi arka uç yapar. */
   url: string;
 }
 
 export interface AnalyzeResponse {
   id: string;
-  /** "done": istek hemen sonuçlandı (ör. analiz motoru kullanılamıyor). */
+  /** "done": istek hemen sonuçlandı (URL incelemesi her zaman böyledir). */
   state: 'queued' | 'running' | 'done';
   status?: string;
   error?: { code: string; message: string } | null;
@@ -92,6 +92,68 @@ export interface UrlModuleData {
   lookalikes: SimilarityMatch[];
 }
 
+/**
+ * Gerçek URL incelemesinin verisi (backend/app/services/url_inspection).
+ * Yalnızca adres metninden elde edilir; risk puanı içermez.
+ */
+export interface UrlInspectionData {
+  featureSchemaVersion: string;
+  address: {
+    normalizedUrl: string;
+    scheme: 'http' | 'https';
+    schemeAssumed: boolean;
+    hostType: 'domain' | 'ipv4' | 'ipv6';
+    /** ASCII (punycode) biçimi */
+    hostname: string;
+    unicodeHostname: string;
+    /** Yalnızca adreste yazılıysa */
+    port: number | null;
+    effectivePort: number;
+    /** null: bilinmiyor ya da uygulanamaz; "": alt alan adı yok */
+    subdomain: string | null;
+    registeredDomain: string | null;
+    publicSuffix: string | null;
+    /** IP adreslerinde null */
+    suffixKnown: boolean | null;
+    path: string;
+    query: { parameterCount: number; names: string[]; repeatedNames: string[]; emptyValueCount: number };
+    hasFragment: boolean;
+    /** Yalnızca eski kayıtlarda; giriş bilgisi içeren adresler artık reddedilir. */
+    hasCredentials?: boolean;
+  };
+  features: {
+    normalizedUrlLength: number;
+    hostnameLength: number;
+    registeredDomainLength: number | null;
+    subdomainCount: number | null;
+    hostnameDigitRatio: number;
+    hostnameHyphenCount: number;
+    pathDepth: number;
+    queryParameterCount: number;
+    hasExplicitPort: boolean;
+    isIpAddress: boolean;
+    usesHttps: boolean;
+    hasPercentEncoding: boolean;
+    hasIdn: boolean;
+  };
+  unicode: {
+    mixedScriptLabels: Array<{ label: string; scripts: string[] }>;
+    confusableCharacters: Array<{ label: string; character: string; codePoint: string; script: string; looksLike: string }>;
+  };
+  reference: {
+    status: 'available' | 'unavailable';
+    reason: 'not_configured' | 'load_error' | 'empty_collection' | 'no_registered_domain' | null;
+    collectionVersion: string | null;
+    collectionSize: number;
+    match: {
+      reference: string;
+      exactMatch: boolean;
+      levenshteinSimilarity: number;
+      jaroWinklerSimilarity: number;
+    } | null;
+  };
+}
+
 export interface VisualModuleData {
   /** Ekran görüntüsü yoksa null. */
   screenshotUrl: string | null;
@@ -126,7 +188,8 @@ export interface HtmlModuleData {
   closestMatch: SimilarityMatch | null;
 }
 
-export type UrlModuleResult = ModuleBase<'url', UrlModuleData>;
+/** UrlModuleData örnek veride kullanılır; canlı kayıtlar UrlInspectionData taşır. */
+export type UrlModuleResult = ModuleBase<'url', UrlModuleData | UrlInspectionData>;
 export type VisualModuleResult = ModuleBase<'visual', VisualModuleData>;
 export type TextModuleResult = ModuleBase<'text', TextModuleData>;
 export type HtmlModuleResult = ModuleBase<'html', HtmlModuleData>;

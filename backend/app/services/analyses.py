@@ -1,16 +1,22 @@
 """Analysis records: creation, retrieval, history and the DB -> API mapping."""
 
-import ipaddress
 import logging
-import re
+import time
 from datetime import timedelta
-from urllib.parse import urlsplit
 
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.base import utcnow
-from app.models import Analysis, AnalysisModule, AnalysisStatus, FailureCode, ModuleName
+from app.models import (
+    Analysis,
+    AnalysisMode,
+    AnalysisModule,
+    AnalysisStatus,
+    FailureCode,
+    ModuleName,
+    ModuleStatus,
+)
 from app.schemas.analysis import (
     AnalysisStage,
     FailureOut,
@@ -24,52 +30,23 @@ from app.schemas.analysis import (
     RiskOut,
 )
 from app.services import engine
+from app.services.url_inspection import InvalidUrl, parse_url
 
 logger = logging.getLogger(__name__)
 
-MAX_URL_LENGTH = 2048
 # A pending/running record older than this is treated as timed out, so no
 # record can stay "running" forever (for example after a crash).
 STALE_AFTER = timedelta(minutes=30)
 RESULT_FILTERS = ("all", "low", "suspicious", "high", "failed")
 
 
-class InvalidUrl(ValueError):
-    def __init__(self, code: str, message: str) -> None:
-        super().__init__(message)
-        self.code = code
-        self.message = message
-
-
-_DOMAIN = re.compile(r"^(?!-)[\w-]+(\.[\w-]+)*\.([^\W\d_]{2,}|xn--[a-z0-9-]+)\.?$", re.IGNORECASE)
-
-
 def validate_url(raw: str) -> str:
-    """Server-side counterpart of frontend/src/lib/url.ts (the frontend normalises first)."""
-    value = raw.strip()
-    if not value:
-        raise InvalidUrl("empty", "İncelemek istediğiniz web adresini yazın.")
-    if len(value) > MAX_URL_LENGTH:
-        raise InvalidUrl("too_long", "Bu adres çok uzun. En fazla 2048 karakterlik adresler incelenebilir.")
-    if re.search(r"\s", value):
-        raise InvalidUrl("whitespace", "Adres boşluk içeremez.")
-    try:
-        parts = urlsplit(value)
-        host = parts.hostname or ""
-    except ValueError:
-        raise InvalidUrl("malformed", "Bu bir web adresine benzemiyor.") from None
-    if parts.scheme.lower() not in ("http", "https"):
-        raise InvalidUrl(
-            "unsupported_scheme", "Yalnızca http:// veya https:// ile başlayan web adresleri incelenebilir."
-        )
-    try:
-        ipaddress.ip_address(host)
-        is_ip = True
-    except ValueError:
-        is_ip = False
-    if not host or (not is_ip and not _DOMAIN.match(host)):
-        raise InvalidUrl("invalid_host", "Alan adı eksik ya da hatalı görünüyor.")
-    return value
+    """Accept or reject a submission with the same parser the inspector uses.
+
+    Returns the trimmed input, which is what analyses.submitted_url stores.
+    The normalised form is kept in the URL module's data.
+    """
+    return parse_url(raw).submitted
 
 
 # --------------------------------------------------------------------------- #
@@ -78,27 +55,57 @@ def validate_url(raw: str) -> str:
 
 
 def create_analysis(db: Session, url: str) -> Analysis:
-    """Record the request and hand it to the engine.
+    """Run URL-only inspection and store the analysis with its module rows.
 
-    While the engine is unavailable the record is stored as failed in the same
-    transaction, so it is never left pending.
+    Everything is written in one commit, so a record is either complete or
+    absent. A successful inspection is "partial" with no risk level: it is not
+    a phishing assessment.
     """
-    started = utcnow()
-    analysis = Analysis(submitted_url=url, status=AnalysisStatus.PENDING.value, created_at=started)
-    db.add(analysis)
-    db.flush()
+    clock = time.perf_counter()
+    analysis = Analysis(submitted_url=url, created_at=utcnow(), analysis_mode=AnalysisMode.URL_ONLY.value)
 
     try:
-        engine.submit(analysis.id, url)
-    except engine.AnalysisEngineUnavailable as error:
-        finished = utcnow()
+        inspection = engine.run_url_inspection(url)
+    except Exception as error:  # noqa: BLE001 - stored and reported with a fixed message
+        # Only the type is logged: messages may repeat parts of the submitted address.
+        logger.error("URL inspection failed (%s).", type(error).__name__)
+        url_module = AnalysisModule(
+            module=ModuleName.URL.value,
+            status=ModuleStatus.FAILED.value,
+            summary="Adres incelenemedi.",
+            findings=[],
+            error_message=engine.URL_FAILURE_MESSAGE,
+        )
         analysis.status = AnalysisStatus.FAILED.value
-        analysis.error_code = FailureCode.SERVICE_UNAVAILABLE.value
-        analysis.error_message = str(error)
-        analysis.completed_at = finished
-        analysis.duration_ms = int((finished - started).total_seconds() * 1000)
-        logger.info("Analysis %s recorded as failed: analysis engine unavailable.", analysis.id)
+        analysis.error_code = FailureCode.UNKNOWN.value
+        analysis.error_message = engine.URL_FAILURE_MESSAGE
+    else:
+        url_module = AnalysisModule(
+            module=ModuleName.URL.value,
+            status=ModuleStatus.COMPLETED.value,
+            summary=inspection.summary,
+            findings=inspection.findings,
+            features=inspection.data,
+        )
+        analysis.status = AnalysisStatus.PARTIAL.value
 
+    elapsed_ms = round((time.perf_counter() - clock) * 1000)
+    url_module.duration_ms = elapsed_ms
+    analysis.modules = [url_module] + [
+        AnalysisModule(
+            module=name.value,
+            status=ModuleStatus.SKIPPED.value,
+            summary="Çalıştırılmadı.",
+            findings=[],
+            error_message=engine.MODULE_NOT_IMPLEMENTED_REASON,
+        )
+        for name in ModuleName
+        if name is not ModuleName.URL
+    ]
+    analysis.completed_at = utcnow()
+    analysis.duration_ms = elapsed_ms
+
+    db.add(analysis)
     db.commit()
     return analysis
 
@@ -183,6 +190,9 @@ def to_result(analysis: Analysis) -> ResultOut:
         )
 
     rows = {row.module: row for row in analysis.modules}
+    url_row = rows.get(ModuleName.URL.value)
+    if failure and url_row is not None and url_row.status == ModuleStatus.FAILED.value:
+        failure.stage = "url_check"
     return ResultOut(
         id=analysis.id,
         submitted_url=analysis.submitted_url,

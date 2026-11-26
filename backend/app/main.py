@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
@@ -37,8 +38,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Sahte Site Avcıları API",
-    version="0.2.0",
-    description="Phishing risk analysis backend. The analysis engine is not available yet.",
+    version="0.3.0",
+    description="Phishing risk analysis backend. Only URL-only inspection is implemented; no risk is calculated.",
     lifespan=lifespan,
 )
 
@@ -58,6 +59,13 @@ async def database_error_handler(_: Request, error: SQLAlchemyError) -> JSONResp
         status_code=503,
         content={"detail": {"code": "database_unavailable", "message": "Veritabanına şu anda ulaşılamıyor."}},
     )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(_: Request, error: RequestValidationError) -> JSONResponse:
+    # FastAPI's default response echoes the received input, which could contain a password.
+    details = [{key: item[key] for key in ("type", "loc", "msg") if key in item} for item in error.errors()]
+    return JSONResponse(status_code=422, content={"detail": details})
 
 
 app.include_router(health.router)
