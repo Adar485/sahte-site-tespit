@@ -41,6 +41,27 @@ class Settings(BaseSettings):
     # (relative paths are resolved against the backend folder). Empty: no comparison.
     REFERENCE_DOMAINS_FILE: str = ""
 
+    # Page capture (headless Chromium). The viewport is fixed in code so captures stay comparable.
+    CAPTURE_ENABLED: bool = True
+    CAPTURE_STORAGE_DIR: str = "var/captures"  # relative to backend/
+    CAPTURE_NAVIGATION_TIMEOUT_S: float = Field(default=20, ge=1, le=120)
+    CAPTURE_TOTAL_TIMEOUT_S: float = Field(default=45, ge=5, le=300)
+    CAPTURE_SETTLE_MAX_S: float = Field(default=5, ge=0, le=30)
+    CAPTURE_MAX_REDIRECTS: int = Field(default=10, ge=0, le=20)
+    CAPTURE_MAX_REQUESTS: int = Field(default=250, ge=1, le=2000)
+    CAPTURE_MAX_DOWNLOAD_MB: int = Field(default=30, ge=1, le=500)
+    CAPTURE_MAX_HTML_MB: int = Field(default=5, ge=1, le=50)
+    CAPTURE_MAX_TEXT_CHARS: int = Field(default=500_000, ge=1000, le=5_000_000)
+    CAPTURE_MAX_SCREENSHOT_MB: int = Field(default=10, ge=1, le=50)
+    CAPTURE_STORAGE_MAX_MB: int = Field(default=1024, ge=1)
+    CAPTURE_CONCURRENCY: int = Field(default=2, ge=1, le=8)
+    CAPTURE_MAX_PENDING: int = Field(default=10, ge=1, le=100)
+    CAPTURE_ALLOWED_PORTS: str = "80,443,8080,8443"
+
+    @property
+    def capture_allowed_ports(self) -> frozenset[int]:
+        return frozenset(int(port) for port in self.CAPTURE_ALLOWED_PORTS.split(",") if port.strip())
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip().rstrip("/") for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

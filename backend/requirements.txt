@@ -12,6 +12,9 @@ tldextract>=5.1,<6          # its bundled Public Suffix List snapshot is used (n
 idna>=3.7,<4
 confusable_homoglyphs==3.3.1  # Unicode script and confusables data
 
+# Page capture. After installing, once: python -m playwright install chromium
+playwright>=1.50,<2
+
 # Database
 SQLAlchemy>=2.0.30,<2.1
 PyMySQL>=1.1

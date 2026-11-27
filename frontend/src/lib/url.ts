@@ -248,3 +248,16 @@ export function hostnameOf(url: string): string {
     return url;
   }
 }
+
+/** Son adres, gönderilen adresin yalnızca yazım farkı değilse true. */
+export function isDifferentAddress(submitted: string, final: string): boolean {
+  const canonical = (value: string) => {
+    const result = normalizeUrl(value);
+    try {
+      return new URL(result.ok ? result.url : value).href;
+    } catch {
+      return value;
+    }
+  };
+  return canonical(submitted) !== canonical(final);
+}
