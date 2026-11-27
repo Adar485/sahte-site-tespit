@@ -62,7 +62,7 @@ if errorlevel 1 (
     set "FAILED=1"
     goto :check_node
 )
-python -c "import fastapi, uvicorn, sqlalchemy, pymysql, alembic, pydantic_settings, rapidfuzz, tldextract, idna, confusable_homoglyphs" >nul 2>&1
+python -c "import fastapi, uvicorn, sqlalchemy, pymysql, alembic, pydantic_settings, rapidfuzz, tldextract, idna, confusable_homoglyphs, playwright" >nul 2>&1
 if errorlevel 1 (
     echo  [MISSING] Backend Python packages.
     echo            Run once:  python -m pip install -r backend\requirements.txt

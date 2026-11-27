@@ -47,7 +47,8 @@ export function useAnalysisJob(id: string) {
           return;
         }
         if (job.state === 'done') {
-          if (sawRunning && job.result.status !== 'failed') {
+          // Tüm aşamaların tamamlandığı yalnızca gerçekten bir değerlendirme varsa gösterilir.
+          if (sawRunning && job.result.risk) {
             setView({ phase: 'finishing', result: job.result });
             timer = window.setTimeout(() => setView({ phase: 'done', result: job.result }), COMPLETION_HOLD_MS);
           } else {

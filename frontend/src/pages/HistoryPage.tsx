@@ -23,7 +23,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useHistoryQuery } from '../hooks/useHistoryQuery';
 import { formatShortDate, formatTime } from '../lib/format';
 import { FILTER_LABELS } from '../lib/labels';
-import { displayUrl } from '../lib/url';
+import { displayUrl, isDifferentAddress } from '../lib/url';
 import { analysisService, isDemoMode, toServiceError } from '../services';
 import type { HistoryEntry, HistoryPage as HistoryPageData, ResultFilter } from '../types/analysis';
 
@@ -282,7 +282,7 @@ export function HistoryPage() {
 }
 
 function HistoryRow({ entry, onDelete }: { entry: HistoryEntry; onDelete(): void }) {
-  const redirected = entry.finalUrl && entry.finalUrl !== entry.submittedUrl;
+  const redirected = entry.finalUrl && isDifferentAddress(entry.submittedUrl, entry.finalUrl);
   return (
     <li className="group relative flex items-center gap-3 px-4 py-4 transition-colors hover:bg-paper sm:gap-5 sm:px-6">
       <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_130px] sm:items-center sm:gap-5">

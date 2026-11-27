@@ -1,9 +1,9 @@
 """Analysis engine boundary.
 
-Only URL-only inspection is implemented. It is deterministic, needs no network
-access and runs within the request. Page fetching, the visual, text and DOM
-modules and the XGBoost classifier are not implemented, so no risk level,
-score or model version is produced anywhere.
+Implemented: URL-only inspection (deterministic, no network, runs within the
+request) and, afterwards in the background, page capture (app/services/capture).
+The visual, text and DOM modules and the XGBoost classifier are not implemented,
+so no risk level, score or model version is produced anywhere.
 """
 
 from pathlib import Path
@@ -11,7 +11,7 @@ from pathlib import Path
 from app.core.config import BACKEND_DIR, get_settings
 from app.services.url_inspection import UrlInspection, inspect_url
 
-MODULE_NOT_IMPLEMENTED_REASON = "Bu analiz bölümü henüz uygulanmadı; yalnızca adres incelendi."
+MODULE_NOT_IMPLEMENTED_REASON = "Bu analiz bölümü henüz uygulanmadı."
 URL_FAILURE_MESSAGE = "Adres incelenirken beklenmeyen bir sorun oluştu."
 
 

@@ -4,6 +4,7 @@ import { AnalysisProgress } from '../components/AnalysisProgress';
 import { FailedVerdict } from '../components/result/FailedVerdict';
 import { KeyFindings } from '../components/result/KeyFindings';
 import { ModuleTabs } from '../components/result/ModuleTabs';
+import { CaptureSection } from '../components/result/CaptureSection';
 import { ResultMeta } from '../components/result/ResultMeta';
 import { RiskVerdict } from '../components/result/RiskVerdict';
 import { UnscoredVerdict } from '../components/result/UnscoredVerdict';
@@ -136,7 +137,7 @@ function ResultView({ result }: { result: AnalysisResult }) {
         {result.risk ? (
           <RiskVerdict result={result} risk={result.risk} />
         ) : result.status !== 'failed' ? (
-          <UnscoredVerdict />
+          <UnscoredVerdict capture={result.capture ?? null} />
         ) : (
           <FailedVerdict
             failure={result.failure ?? { code: 'unknown', stage: 'scoring', message: 'Analiz sonucu oluşturulamadı.' }}
@@ -152,6 +153,8 @@ function ResultView({ result }: { result: AnalysisResult }) {
         )}
 
         <ResultMeta result={result} />
+
+        {result.capture && <CaptureSection capture={result.capture} />}
 
         {result.risk && <KeyFindings result={result} />}
       </div>

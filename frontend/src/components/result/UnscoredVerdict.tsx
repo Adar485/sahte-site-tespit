@@ -1,8 +1,15 @@
 import { ScanSearch } from 'lucide-react';
+import type { PageCapture } from '../../types/analysis';
 import { Eyebrow } from '../ui';
 
+function scope(capture: PageCapture | null): string {
+  if (!capture) return 'Yalnızca adres metni incelendi; sayfa açılmadı.';
+  if (capture.status === 'failed') return 'Adres metni incelendi; sayfa yakalanamadı.';
+  return 'Adres metni incelendi ve sayfa yakalandı. Görüntü, metin ve sayfa yapısı henüz analiz edilmedi.';
+}
+
 /** İnceleme yapıldı ama sınıflandırıcı çalışmadı: hiçbir risk düzeyi gösterilmez. */
-export function UnscoredVerdict() {
+export function UnscoredVerdict({ capture }: { capture: PageCapture | null }) {
   return (
     <section aria-labelledby="genel-sonuc" className="overflow-hidden rounded-2xl border border-line-strong bg-card">
       <div className="h-1.5 bg-ink-muted" aria-hidden />
@@ -17,8 +24,7 @@ export function UnscoredVerdict() {
           </h1>
         </div>
         <p className="mt-5 max-w-2xl text-[15px] leading-6 text-ink-soft">
-          Yalnızca adres metni incelendi; sayfa açılmadı. Aşağıdaki gözlemler tek başına sitenin güvenli ya da tehlikeli
-          olduğunu göstermez.
+          {scope(capture)} Aşağıdaki gözlemler tek başına sitenin güvenli ya da tehlikeli olduğunu göstermez.
         </p>
       </div>
     </section>

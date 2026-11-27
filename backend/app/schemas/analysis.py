@@ -27,7 +27,7 @@ class ErrorInfo(CamelModel):
 
 class AnalyzeResponse(CamelModel):
     id: str
-    # "done" when the request finished immediately (URL-only inspection always does).
+    # "running" while the page capture is in progress; "done" when nothing else is pending.
     state: Literal["queued", "running", "done"]
     status: str
     error: ErrorInfo | None = None
@@ -56,6 +56,37 @@ class ModuleOut(CamelModel):
     duration_ms: int | None = None
 
 
+class CaptureArtifactsOut(CamelModel):
+    screenshot: bool
+    html: bool
+    text: bool
+
+
+class CaptureOut(CamelModel):
+    """Page capture of one analysis. File paths and raw HTML are never exposed."""
+
+    id: str
+    status: Literal["pending", "running", "completed", "partial", "failed"]
+    requested_url: str
+    final_url: str | None
+    http_status: int | None
+    requested_at: datetime
+    completed_at: datetime | None
+    duration_ms: int | None
+    viewport_width: int
+    viewport_height: int
+    artifacts: CaptureArtifactsOut
+    screenshot_url: str | None  # path on this API
+    text_preview: str | None  # plain text, first 2000 characters
+    text_length: int | None
+    redirected: bool
+    consistent: bool | None  # False: the page navigated while artifacts were taken
+    page_title: str | None
+    signals: dict[str, bool] | None  # httpError, blank, captcha: observations, not judgements
+    error: ErrorInfo | None
+    capture_version: str
+
+
 class ResultOut(CamelModel):
     id: str
     submitted_url: str
@@ -70,6 +101,7 @@ class ResultOut(CamelModel):
     analysis_mode: Literal["full", "url_only"] | None
     model_version: str | None
     is_demo: bool = False
+    capture: CaptureOut | None = None  # None for records without a capture
 
 
 class JobPendingOut(CamelModel):

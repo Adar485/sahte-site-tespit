@@ -21,6 +21,7 @@ from app.core.logging import setup_logging
 from app.db.errors import describe
 from app.db.init import initialize_database
 from app.db.session import get_engine
+from app.services.capture import get_capture_manager, shutdown_capture_manager
 
 setup_logging()
 logger = logging.getLogger("app.main")
@@ -31,15 +32,21 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Startup: check the connection and create missing tables before serving
     # requests. A DatabaseInitializationError aborts startup.
     await run_in_threadpool(initialize_database)
-    yield
-    # Shutdown: close pooled connections.
-    get_engine().dispose()
+    captures = get_capture_manager()
+    if captures is not None:
+        await run_in_threadpool(captures.recover_interrupted)
+    try:
+        yield
+    finally:
+        # Shutdown: stop captures (closing their browsers), then close pooled connections.
+        await run_in_threadpool(shutdown_capture_manager)
+        get_engine().dispose()
 
 
 app = FastAPI(
     title="Sahte Site Avcıları API",
-    version="0.3.0",
-    description="Phishing risk analysis backend. Only URL-only inspection is implemented; no risk is calculated.",
+    version="0.4.0",
+    description="Phishing risk analysis backend. URL inspection and page capture are implemented; no risk is calculated.",
     lifespan=lifespan,
 )
 

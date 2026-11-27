@@ -5,6 +5,8 @@ import os
 # Settings require DB_USER; no connection is opened with it.
 os.environ.setdefault("DB_USER", "test")
 os.environ["REFERENCE_DOMAINS_FILE"] = ""
+# API tests are URL-only unless they pass their own capture manager (test_capture.py).
+os.environ["CAPTURE_ENABLED"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient

@@ -144,6 +144,7 @@ sahte_site_tespit
 |---|---|
 | `analyses` | URL, işlem durumu, risk sonucu, zaman, süre ve hata bilgileri |
 | `analysis_modules` | Analize bağlı modüllerin durumları, özellikleri ve bulguları |
+| `page_captures` | Sayfa yakalama durumu, son adres, süreler ve dosya yolları (içerik dosyalarda tutulur) |
 
 Her analiz birden fazla modül sonucuyla ilişkilidir.
 
@@ -176,7 +177,12 @@ cd ..
 
 ### 3. Backend Bağımlılıklarını Yükleyin
 
-Backend klasöründeki kurulum belgesinde belirtilen bağımlılık dosyasını ve komutu kullanın.
+```bash
+python -m pip install -r backend/requirements.txt
+python -m playwright install chromium
+```
+
+İkinci komut, sayfa yakalamada kullanılan Chromium tarayıcısını indirir. Her iki komut da bir kez (ve bağımlılıklar değiştiğinde) çalıştırılır; uygulama açılışında tekrar kurulum yapılmaz. Ayrıntılar: [backend/README.md](backend/README.md).
 
 ### 4. MySQL’i Hazırlayın
 

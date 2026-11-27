@@ -10,14 +10,17 @@ from app.models.analysis import (
     ModuleStatus,
     RiskLevel,
 )
+from app.models.capture import CaptureStatus, PageCapture
 
 __all__ = [
     "Analysis",
     "AnalysisMode",
     "AnalysisModule",
     "AnalysisStatus",
+    "CaptureStatus",
     "FailureCode",
     "ModuleName",
     "ModuleStatus",
+    "PageCapture",
     "RiskLevel",
 ]

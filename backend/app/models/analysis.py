@@ -111,6 +111,10 @@ class Analysis(Base):
         order_by="AnalysisModule.id",
     )
 
+    capture: Mapped["PageCapture | None"] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        back_populates="analysis", cascade="all, delete-orphan", passive_deletes=True, uselist=False
+    )
+
     __table_args__ = (
         CheckConstraint(_in("status", AnalysisStatus), name="status_valid"),
         CheckConstraint(f"risk_level IS NULL OR {_in('risk_level', RiskLevel)}", name="risk_level_valid"),

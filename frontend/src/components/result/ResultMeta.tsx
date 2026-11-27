@@ -2,6 +2,7 @@ import { Check, CircleDashed, Clock, Loader2, Minus, X } from 'lucide-react';
 import { formatDateTime, formatDuration } from '../../lib/format';
 import { ANALYSIS_MODE_LABELS, MODULE_LABELS, MODULE_ORDER, MODULE_STATUS_LABELS } from '../../lib/labels';
 import type { AnalysisResult, ModuleStatus } from '../../types/analysis';
+import { isDifferentAddress } from '../../lib/url';
 import { UrlText } from '../ui';
 
 export const MODULE_STATUS_ICONS: Record<ModuleStatus, typeof Check> = {
@@ -15,7 +16,7 @@ export const MODULE_STATUS_ICONS: Record<ModuleStatus, typeof Check> = {
 
 export function ResultMeta({ result }: { result: AnalysisResult }) {
   const completed = MODULE_ORDER.filter((key) => result.modules[key].status === 'completed').length;
-  const redirected = result.finalUrl && result.finalUrl !== result.submittedUrl;
+  const redirected = result.finalUrl && isDifferentAddress(result.submittedUrl, result.finalUrl);
   const analyzedAt = result.completedAt ?? result.requestedAt;
 
   return (
@@ -41,7 +42,7 @@ export function ResultMeta({ result }: { result: AnalysisResult }) {
                 </>
               ) : (
                 <span className="text-ink-muted">
-                  {result.analysisMode === 'url_only' && !result.isDemo ? 'Sayfa açılmadı' : 'Belirlenemedi'}
+                  {result.analysisMode === 'url_only' && !result.isDemo && !result.capture ? 'Sayfa açılmadı' : 'Belirlenemedi'}
                 </span>
               )}
             </dd>

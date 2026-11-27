@@ -218,6 +218,36 @@ export interface AnalysisFailure {
   stage: AnalysisStage;
 }
 
+/**
+ * Sayfa yakalama kaydı. Gözlemdir, değerlendirme değildir: görsel ve metin analizi
+ * ayrıca yapılır. Ham HTML hiçbir zaman arayüze gönderilmez.
+ */
+export interface PageCapture {
+  id: string;
+  status: 'pending' | 'running' | 'completed' | 'partial' | 'failed';
+  requestedUrl: string;
+  finalUrl: string | null;
+  httpStatus: number | null;
+  requestedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  viewportWidth: number;
+  viewportHeight: number;
+  artifacts: { screenshot: boolean; html: boolean; text: boolean };
+  /** Arka uç üzerindeki yol */
+  screenshotUrl: string | null;
+  /** Düz metin, ilk 2000 karakter */
+  textPreview: string | null;
+  textLength: number | null;
+  redirected: boolean;
+  /** false: parçalar alınırken sayfa adres değiştirdi */
+  consistent: boolean | null;
+  pageTitle: string | null;
+  signals: { httpError?: boolean; blank?: boolean; captcha?: boolean } | null;
+  error: { code: string; message: string } | null;
+  captureVersion: string;
+}
+
 export interface AnalysisResult {
   id: string;
   submittedUrl: string;
@@ -235,6 +265,8 @@ export interface AnalysisResult {
   modelVersion: string | null;
   /** Sonuç örnek veriden mi üretildi? */
   isDemo: boolean;
+  /** Eski kayıtlarda ve demo verisinde yoktur. */
+  capture?: PageCapture | null;
 }
 
 export type AnalysisJob =
