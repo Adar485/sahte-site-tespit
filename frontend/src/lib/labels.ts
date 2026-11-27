@@ -53,7 +53,7 @@ export const STAGE_LABELS: Record<AnalysisStage, string> = {
 
 export const STAGE_DESCRIPTIONS: Record<AnalysisStage, string> = {
   url_check: 'Adresin yazımı, alan adı ve yönlendirmeler inceleniyor.',
-  page_fetch: 'Sayfa güvenli bir ortamda açılıyor ve içeriği alınıyor.',
+  page_fetch: 'Sayfa ayrı bir tarayıcı oturumunda açılıyor; görüntüsü ve metni alınıyor.',
   content_inspection: 'Ekran görüntüsü, görünür metin ve HTML yapısı karşılaştırılıyor.',
   scoring: 'Bulgular birleştirilerek genel değerlendirme hazırlanıyor.',
 };

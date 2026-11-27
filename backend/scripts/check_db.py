@@ -11,7 +11,7 @@ import sys
 from pydantic import ValidationError
 from sqlalchemy import inspect, text
 
-EXPECTED_TABLES = ("analyses", "analysis_modules")
+EXPECTED_TABLES = ("analyses", "analysis_modules", "page_captures")
 
 
 def main() -> int:

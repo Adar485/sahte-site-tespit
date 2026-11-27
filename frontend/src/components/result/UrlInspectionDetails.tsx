@@ -122,7 +122,7 @@ export function UrlInspectionDetails({ findings, data }: { findings: Finding[]; 
         )}
       </Block>
 
-      <p className="text-[13px] leading-5 text-ink-muted">Sayfa açılmadı; yönlendirmeler, DNS, sertifika ve alan adı kaydı incelenmedi.</p>
+      <p className="text-[13px] leading-5 text-ink-muted">Bu bölüm yalnızca adres metnine dayanır; DNS, sertifika ve alan adı kaydı incelenmedi.</p>
     </div>
   );
 }

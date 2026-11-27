@@ -3,6 +3,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -15,10 +16,13 @@ from app.schemas.analysis import (
     JobPendingOut,
 )
 from app.services import analyses
+from app.services.capture import get_capture_manager
+from app.services.capture.manager import CaptureManager
 
 router = APIRouter(prefix="/api", tags=["analyses"])
 
 DbSession = Annotated[Session, Depends(get_db)]
+Captures = Annotated[CaptureManager | None, Depends(get_capture_manager)]
 NOT_FOUND = {"code": "not_found", "message": "Bu analiz sonucu bulunamadı. Silinmiş olabilir."}
 ERRORS = {
     404: {"description": "Unknown analysis id"},
@@ -28,13 +32,13 @@ ERRORS = {
 
 
 @router.post("/analyze", status_code=status.HTTP_202_ACCEPTED, response_model=AnalyzeResponse, responses=ERRORS)
-def analyze(body: AnalyzeRequest, db: DbSession) -> AnalyzeResponse:
+def analyze(body: AnalyzeRequest, db: DbSession, captures: Captures) -> AnalyzeResponse:
     try:
         url = analyses.validate_url(body.url)
     except analyses.InvalidUrl as error:
         raise HTTPException(status_code=422, detail={"code": error.code, "message": error.message}) from None
 
-    record = analyses.create_analysis(db, url)
+    record = analyses.create_analysis(db, url, captures)
     finished = record.status not in ("pending", "running")
     return AnalyzeResponse(
         id=record.id,
@@ -70,3 +74,15 @@ def delete(analysis_id: str, db: DbSession) -> Response:
     if not analyses.delete_analysis(db, analysis_id):
         raise HTTPException(status_code=404, detail=NOT_FOUND)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/captures/{capture_id}/screenshot", response_class=FileResponse, responses=ERRORS)
+def screenshot(capture_id: str, db: DbSession) -> FileResponse:
+    path = analyses.screenshot_file(db, capture_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Ekran görüntüsü bulunamadı."})
+    return FileResponse(
+        path,
+        media_type="image/png",
+        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'"},
+    )
