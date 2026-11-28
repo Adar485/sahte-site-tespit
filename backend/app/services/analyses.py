@@ -106,7 +106,7 @@ def create_analysis(db: Session, url: str, capture_manager: CaptureManager | Non
             status=ModuleStatus.SKIPPED.value,
             summary="Çalıştırılmadı.",
             findings=[],
-            error_message=engine.MODULE_NOT_IMPLEMENTED_REASON,
+            error_message="Görsel özellikler için önce ekran görüntüsü alınması gerekir." if name is ModuleName.VISUAL else engine.MODULE_NOT_IMPLEMENTED_REASON,
         )
         for name in ModuleName
         if name is not ModuleName.URL
@@ -238,13 +238,16 @@ def _module_out(key: str, row: AnalysisModule | None) -> ModuleOut:
     if row is None:
         # Never invent module content: a missing row is reported as not run.
         return ModuleOut(key=key, status="skipped", summary="Sonuç yok.", unavailable_reason=_MISSING_MODULE_REASON)
+    data = row.features
+    if key == "visual" and data and "embedding" in data:
+        data = {**data, "embedding": {name: value for name, value in data["embedding"].items() if name != "vector"}}
     return ModuleOut(
         key=key,
         status=row.status,
         summary=row.summary or "",
         unavailable_reason=row.error_message,
         findings=row.findings or [],
-        data=row.features,
+        data=data,
         duration_ms=row.duration_ms,
     )
 
@@ -270,6 +273,16 @@ def to_result(analysis: Analysis) -> ResultOut:
     url_row = rows.get(ModuleName.URL.value)
     if failure and url_row is not None and url_row.status == ModuleStatus.FAILED.value:
         failure.stage = "url_check"
+    capture = _capture_out(analysis.capture)
+    modules = {name.value: _module_out(name.value, rows.get(name.value)) for name in ModuleName}
+    visual = modules["visual"]
+    if visual.data and visual.data.get("embedding"):
+        visual.data = {
+            **visual.data,
+            "screenshotUrl": capture.screenshot_url if capture else None,
+            "screenshotAlt": "Analiz edilen sayfanın ekran görüntüsü",
+            "viewport": f"{capture.viewport_width} × {capture.viewport_height}" if capture else "",
+        }
     return ResultOut(
         id=analysis.id,
         submitted_url=analysis.submitted_url,
@@ -280,10 +293,10 @@ def to_result(analysis: Analysis) -> ResultOut:
         status=analysis.status,
         risk=risk,
         failure=failure,
-        modules={name.value: _module_out(name.value, rows.get(name.value)) for name in ModuleName},
+        modules=modules,
         analysis_mode=analysis.analysis_mode,
         model_version=analysis.model_version,
-        capture=_capture_out(analysis.capture),
+        capture=capture,
     )
 
 

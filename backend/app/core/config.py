@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     REFERENCE_DOMAINS_FILE: str = ""
 
     # Page capture (headless Chromium). The viewport is fixed in code so captures stay comparable.
+    # Local DINOv2; heavy packages are optional and no model is downloaded at runtime.
+    VISUAL_ENABLED: bool = True
+    VISUAL_MODEL_DIR: str = "../models/dinov2-small"
+
     CAPTURE_ENABLED: bool = True
     CAPTURE_STORAGE_DIR: str = "var/captures"  # relative to backend/
     CAPTURE_NAVIGATION_TIMEOUT_S: float = Field(default=20, ge=1, le=120)

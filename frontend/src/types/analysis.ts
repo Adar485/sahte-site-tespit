@@ -155,6 +155,16 @@ export interface UrlInspectionData {
 }
 
 export interface VisualModuleData {
+  embedding?: {
+    modelId: string;
+    modelRevision: string;
+    preprocessingVersion: string;
+    dimensions: number;
+    normalized: boolean;
+    imageWidth: number;
+    imageHeight: number;
+  };
+  reference?: { status: 'available' | 'unavailable'; reason: string | null; collectionSize: number };
   /** Ekran görüntüsü yoksa null. */
   screenshotUrl: string | null;
   screenshotAlt: string;

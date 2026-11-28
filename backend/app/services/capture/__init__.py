@@ -9,6 +9,7 @@ from app.services.capture.browser import CaptureConfig
 from app.services.capture.manager import CaptureManager
 from app.services.capture.network import NetworkPolicy
 from app.services.capture.storage import ArtifactStore
+from app.services.visual_inspection import inspect_screenshot
 
 _MB = 1024 * 1024
 
@@ -42,6 +43,7 @@ def _manager() -> CaptureManager:
         policy=NetworkPolicy(allowed_ports=settings.capture_allowed_ports),
         concurrency=settings.CAPTURE_CONCURRENCY,
         max_pending=settings.CAPTURE_MAX_PENDING,
+        visual_inspector=inspect_screenshot,
     )
 
 

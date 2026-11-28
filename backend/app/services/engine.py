@@ -2,7 +2,8 @@
 
 Implemented: URL-only inspection (deterministic, no network, runs within the
 request) and, afterwards in the background, page capture (app/services/capture).
-The visual, text and DOM modules and the XGBoost classifier are not implemented,
+DINOv2 screenshot embeddings follow capture. The text and DOM modules, visual
+reference comparison and the XGBoost classifier are not implemented,
 so no risk level, score or model version is produced anywhere.
 """
 
