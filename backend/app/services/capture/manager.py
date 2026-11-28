@@ -11,6 +11,7 @@ import logging
 import sys
 import threading
 import time
+from pathlib import Path
 from collections.abc import Callable
 
 from sqlalchemy import select
@@ -18,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.db.base import utcnow
 from app.models import Analysis, AnalysisStatus, CaptureStatus, PageCapture
+from app.services.visual_inspection import VisualInspection
 from app.services.capture import storage
 from app.services.capture.browser import (
     CAPTURE_VERSION,
@@ -78,6 +80,7 @@ class CaptureManager:
         policy: NetworkPolicy | None = None,
         concurrency: int = 2,
         max_pending: int = 10,
+        visual_inspector: Callable[[Path | None], VisualInspection] | None = None,
     ) -> None:
         self.session_factory = session_factory
         self.store = store
@@ -85,6 +88,7 @@ class CaptureManager:
         self.policy = policy or NetworkPolicy()
         self.concurrency = concurrency
         self.max_pending = max_pending
+        self.visual_inspector = visual_inspector
         self._lock = threading.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
@@ -188,9 +192,24 @@ class CaptureManager:
             self.store.discard(capture_id)
 
         try:
+            # Runs on the worker thread, outside a DB transaction. The parent and
+            # capture stay running until inference finishes; restart recovery still applies.
+            visual = None
+            if self.visual_inspector is not None:
+                screenshot = self.store.resolve(f"{relative}/{storage.SCREENSHOT}") if relative and storage.SCREENSHOT in outcome.files else None
+                try:
+                    visual = self.visual_inspector(screenshot)
+                except Exception as error:
+                    logger.warning("Visual worker failed (%s).", type(error).__name__)
+                    visual = VisualInspection("failed", "Görsel özellikler çıkarılamadı.", [], None,
+                                              "Görsel analiz sırasında bir sorun oluştu.", 0)
             with self.session_factory() as session:
                 capture = session.get(PageCapture, capture_id)
                 if capture is None:  # the analysis was deleted meanwhile
+                    self.store.delete_analysis(analysis_id)
+                    return
+                # A cancelled worker thread may finish after shutdown/recovery.
+                if capture.status != CaptureStatus.RUNNING.value:
                     self.store.delete_analysis(analysis_id)
                     return
 
@@ -216,6 +235,14 @@ class CaptureManager:
                 capture.duration_ms = elapsed_ms
 
                 analysis = capture.analysis
+                if visual is not None:
+                    row = next((item for item in analysis.modules if item.module == "visual"), None)
+                    if row is not None:
+                        row.status, row.summary = visual.status, visual.summary
+                        row.findings, row.features = visual.findings, visual.data
+                        row.error_message, row.duration_ms = visual.error_message, visual.duration_ms
+                        if visual.status == "completed":
+                            analysis.analysis_mode = None
                 if outcome.final_url:
                     analysis.final_url = outcome.final_url
                 finish_analysis(analysis)

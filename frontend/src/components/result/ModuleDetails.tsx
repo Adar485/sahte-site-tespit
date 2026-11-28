@@ -158,10 +158,23 @@ export function VisualDetails({ module, pageUrl, assessed }: { module: VisualMod
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       <Screenshot data={data} pageUrl={pageUrl} />
       <div className="space-y-6">
+        {data.embedding && (
+          <Block title="Görsel özellikler">
+            <Facts items={[
+              { label: 'Model', value: data.embedding.modelId },
+              { label: 'Vektör boyutu', value: `${data.embedding.dimensions}` },
+              { label: 'Görüntü boyutu', value: `${data.embedding.imageWidth} × ${data.embedding.imageHeight}` },
+              { label: 'Normalizasyon', value: data.embedding.normalized ? 'L2' : 'Yok' },
+            ]} />
+            <p className="mt-3 text-[13px] text-ink-muted">Görüntü kırpılmadan 224 × 224 alana sığdırılır. Bu özellikler tek başına güvenlik kararı vermez.</p>
+          </Block>
+        )}
         <SimilarityBlock
           title="En yakın görsel eşleşme"
           matches={data.closestMatch ? [data.closestMatch] : []}
-          emptyText="Bilinen sayfalarla belirgin bir görsel eşleşme bulunmadı."
+          emptyText={data.reference?.status === 'unavailable'
+            ? 'Referans görsel deposu henüz yapılandırılmadı; görsel benzerlik karşılaştırması yapılmadı.'
+            : 'Bilinen sayfalarla belirgin bir görsel eşleşme bulunmadı.'}
         />
         <Block title="Bulgular">
           <FindingList findings={module.findings} />

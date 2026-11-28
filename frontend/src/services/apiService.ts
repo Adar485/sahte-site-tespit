@@ -75,7 +75,15 @@ export const apiAnalysisService: AnalysisService = {
 
   async getResult(id: string, options?: RequestOptions) {
     const job = await request<AnalysisJob>(`/api/result/${encodeURIComponent(id)}`, { method: 'GET' }, options);
-    return normalizeJob(job);
+    const normalized = normalizeJob(job);
+    if (normalized.state === 'done') {
+      const result = normalized.result;
+      if (result.modules.visual.data?.embedding) {
+        const data = result.modules.visual.data;
+        data.screenshotUrl = data.screenshotUrl ? new URL(data.screenshotUrl, `${API_BASE_URL}/`).href : null;
+      }
+    }
+    return normalized;
   },
 
   listHistory(query: HistoryQuery, options?: RequestOptions) {

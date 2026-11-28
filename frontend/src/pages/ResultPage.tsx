@@ -137,7 +137,7 @@ function ResultView({ result }: { result: AnalysisResult }) {
         {result.risk ? (
           <RiskVerdict result={result} risk={result.risk} />
         ) : result.status !== 'failed' ? (
-          <UnscoredVerdict capture={result.capture ?? null} />
+          <UnscoredVerdict capture={result.capture ?? null} visualReady={Boolean(result.modules.visual.data?.embedding)} />
         ) : (
           <FailedVerdict
             failure={result.failure ?? { code: 'unknown', stage: 'scoring', message: 'Analiz sonucu oluşturulamadı.' }}

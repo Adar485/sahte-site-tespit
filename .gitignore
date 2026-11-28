@@ -15,3 +15,7 @@ dist/
 
 # Captured page artifacts (untrusted content, never committed)
 backend/var/
+.pytest_work/
+
+# Local pretrained DINOv2 model files
+/models/dinov2-small/

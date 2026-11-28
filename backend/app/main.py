@@ -45,8 +45,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="Sahte Site Avcıları API",
-    version="0.4.0",
-    description="Phishing risk analysis backend. URL inspection and page capture are implemented; no risk is calculated.",
+    version="0.5.0",
+    description="Phishing risk analysis backend. URL inspection, page capture and offline DINOv2 embeddings are implemented; no risk is calculated.",
     lifespan=lifespan,
 )
 

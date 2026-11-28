@@ -63,7 +63,7 @@ export function ResultMeta({ result }: { result: AnalysisResult }) {
           <div>
             <dt className="text-[13px] font-bold text-ink-muted">Analiz kapsamı</dt>
             <dd className="mt-1 text-[15px] text-ink">
-              {result.analysisMode ? ANALYSIS_MODE_LABELS[result.analysisMode] : <span className="text-ink-muted">Belirtilmedi</span>}
+              {result.modules.visual.data?.embedding ? 'URL + görsel özellikler' : result.analysisMode ? ANALYSIS_MODE_LABELS[result.analysisMode] : <span className="text-ink-muted">Belirtilmedi</span>}
             </dd>
           </div>
           <div>
